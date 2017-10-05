@@ -1,0 +1,73 @@
+[Thu Apr  6 14:17:16 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:17:16 2017] [info] Manager 20889 started
+[Thu Apr  6 14:17:16 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:17:32 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:17:42 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:18:27 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:18:27 2017] [info] Manager 21076 started
+[Thu Apr  6 14:18:27 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:18:29 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:19:14 2017] [error] '"' expected, at character offset 2 (before "'skills': [1,2,5,4,3...") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:19:44 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:19:44 2017] [info] Manager 21284 started
+[Thu Apr  6 14:19:44 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:19:57 2017] [error] '"' expected, at character offset 2 (before "'skills': [1,2,5,4,3...") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:20:28 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:20:28 2017] [info] Manager 21400 started
+[Thu Apr  6 14:20:28 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:20:36 2017] [error] '"' expected, at character offset 2 (before "'skills': [1,2,5,4,3...") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:20:54 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:20:54 2017] [info] Manager 21438 started
+[Thu Apr  6 14:20:54 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:21:51 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:21:51 2017] [info] Manager 21573 started
+[Thu Apr  6 14:21:51 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:21:55 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:22:56 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:22:56 2017] [info] Manager 21742 started
+[Thu Apr  6 14:22:56 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:22:59 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/TeamDB_api/lib/Web/Controller.pm line 81.
+
+[Thu Apr  6 14:23:57 2017] [error] Can't use string ("") as a HASH ref while "strict refs" in use at /opt/lm240n/www/TeamDB_api/lib/Web/Obj/User.pm line 214.
+
+[Thu Apr  6 14:24:29 2017] [error] Can't use string ("") as a HASH ref while "strict refs" in use at /opt/lm240n/www/TeamDB_api/lib/Web/Obj/User.pm line 214.
+
+[Thu Apr  6 14:30:06 2017] [error] Can't use string ("") as a HASH ref while "strict refs" in use at /opt/lm240n/www/TeamDB_api/lib/Web/Obj/User.pm line 214.
+
+[Thu Apr  6 14:31:30 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:31:30 2017] [info] Manager 22476 started
+[Thu Apr  6 14:31:30 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:31:58 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:31:58 2017] [info] Manager 22663 started
+[Thu Apr  6 14:31:58 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 14:37:09 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 14:37:09 2017] [info] Manager 23106 started
+[Thu Apr  6 14:37:09 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu Apr  6 15:31:56 2017] [info] Listening at "http://*:38173"
+[Thu Apr  6 15:31:56 2017] [info] Manager 29480 started
+[Thu Apr  6 15:31:56 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Tue Apr 25 20:47:50 2017] [error] Worker 29481 has no heartbeat, restarting
+[Tue Apr 25 20:50:43 2017] [error] Worker 24513 has no heartbeat, restarting
+[Thu May 11 18:08:45 2017] [info] Listening at "http://*:38173"
+[Thu May 11 18:08:45 2017] [info] Manager 24677 started
+[Thu May 11 18:08:45 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Thu May 11 18:15:37 2017] [info] Listening at "http://*:38173"
+[Thu May 11 18:15:37 2017] [info] Manager 26269 started
+[Thu May 11 18:15:37 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Mon May 15 18:31:12 2017] [info] Listening at "http://*:38173"
+[Mon May 15 18:31:12 2017] [info] Manager 19749 started
+[Mon May 15 18:31:12 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Fri May 19 14:06:11 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Mon Jun 19 12:15:39 2017] [info] Listening at "http://*:38173"
+[Mon Jun 19 12:15:39 2017] [info] Manager 27816 started
+[Mon Jun 19 12:15:39 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
+[Mon Jun 19 12:16:19 2017] [info] Listening at "http://*:38173"
+[Mon Jun 19 12:16:19 2017] [info] Manager 28393 started
+[Mon Jun 19 12:16:19 2017] [info] Creating process id file "/opt/lm240n/www/TeamDB_api/hypnotoad.pid"
