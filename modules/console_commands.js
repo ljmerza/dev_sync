@@ -41,22 +41,11 @@ process.stdin.on('keypress', function (ch, key) {
     const key_presses = collected_keys;
     collected_keys = '';
 
-
+    // repos
     if ( config.local_paths[key_presses] ) {
       local_path = `../${config.local_paths[key_presses]}`;
       remote_path = `${config.remote_base}/${config.remote_paths[key_presses]}`;
       repo_name = key_presses;
-
-    } else if ( key_presses.match(/^ud(_| )?ember$/i) ) {
-      local_path = `../${config.local_paths.ud_ember}`;
-      remote_path = `${config.remote_base}/www/UD-ember/app`;
-      repo_name = 'ud_ember';
-
-    } else if ( key_presses.match(/^templates$/i) ) {
-      local_path = `../${config.local_paths.templates}`;
-      remote_path = `${config.remote_base}/www/Templates`;
-      repo_name = 'Templates';
-
 
     // API repos
   	} else if ( key_presses.match(/^teamdb(_| )?api$/i) ) {

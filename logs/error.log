@@ -1,0 +1,51 @@
+Too late to run INIT block at /opt/includes/Tool_Box.pm line 2548.
+[Wed Oct 11 14:16:40 2017] [notice] Digest: generating secret for digest authentication ...
+[Wed Oct 11 14:16:40 2017] [notice] Digest: done
+PHP Warning:  Module 'ldap' already loaded in Unknown on line 0
+Too late to run INIT block at /opt/includes/Tool_Box.pm line 2548.
+[Wed Oct 11 14:16:42 2017] [notice] Apache/2.2.29 (Unix) PHP/5.6.8 mod_perl/2.0.9 Perl/v5.22.1 configured -- resuming normal operations
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:16:50 2017] GetManagedInventory.pm: Smartmatch is experimental at /opt/includes/C3/GetManagedInventory.pm line 800.
+[Wed Oct 11 14:16:50 2017] GetManagedInventory.pm: Smartmatch is experimental at /opt/includes/C3/GetManagedInventory.pm line 1035.
+[Wed Oct 11 14:16:50 2017] GetManagedInventory.pm: Smartmatch is experimental at /opt/includes/C3/GetManagedInventory.pm line 800.
+[Wed Oct 11 14:16:50 2017] GetManagedInventory.pm: Smartmatch is experimental at /opt/includes/C3/GetManagedInventory.pm line 1035.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 2973.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 3213.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 3465.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 2973.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 3213.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 3465.
+[Wed Oct 11 14:16:50 2017] BERT.pm: Smartmatch is experimental at /opt/includes/BERT/BERT.pm line 1363.
+[Wed Oct 11 14:16:50 2017] BERT.pm: Smartmatch is experimental at /opt/includes/BERT/BERT.pm line 1363.
+[Wed Oct 11 14:16:50 2017] GetManagedInventory.pm: Smartmatch is experimental at /opt/includes/C3/GetManagedInventory.pm line 800.
+[Wed Oct 11 14:16:50 2017] GetManagedInventory.pm: Smartmatch is experimental at /opt/includes/C3/GetManagedInventory.pm line 1035.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 2973.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 3213.
+[Wed Oct 11 14:16:50 2017] C3.pm: Use of my $_ is experimental at /opt/includes/C3/C3.pm line 3465.
+[Wed Oct 11 14:16:50 2017] BERT.pm: Smartmatch is experimental at /opt/includes/BERT/BERT.pm line 1363.
+[Wed Oct 11 14:16:50 2017] ajaxFuncs.pl: "my" variable $message masks earlier declaration in same scope at /opt/lm240n/www/UD/cgi-bin/ajaxFuncs.pl line 31814, <DATA> line 1.
+[Wed Oct 11 14:16:50 2017] ajaxFuncs.pl: "my" variable $message masks earlier declaration in same scope at /opt/lm240n/www/UD/cgi-bin/ajaxFuncs.pl line 31814, <DATA> line 1.
+[Wed Oct 11 14:16:51 2017] ajaxFuncs.pl: "my" variable $message masks earlier declaration in same scope at /opt/lm240n/www/UD/cgi-bin/ajaxFuncs.pl line 31814, <DATA> line 1.
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:17:40 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:17:40 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:17:40 2017] [error] [client 135.89.12.254] File does not exist: /opt/lm240n/www/UD/*
+[Wed Oct 11 14:17:40 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:17:40 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:17:40 2017] [error] [client 135.89.12.254] File does not exist: /opt/lm240n/www/UD/*
+[Wed Oct 11 14:17:49 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:17:49 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:18:56 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:18:56 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:19:49 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:19:49 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:20:50 2017] -e: Apache2::Reload: Can't locate (set by Moose)
+[Wed Oct 11 14:20:50 2017] -e: Apache2::Reload: Can't locate (set by Moose)

@@ -79,9 +79,9 @@ function execute_remote_command(command) {
 					if(command == 'hostname') console.log('\nConnected with:', data);
 					else console.log(data);
 				}).stderr.on('data', data => {
-					data = formatting.formatServerStdOut(data);
+					data = formatting.formatServerStdOut(data).trim();
 					// dont show certain errors
-					if(!data.match(/^- (chmod|bash|: No such|chgrp)/)){
+					if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
 						console.log(data);
 					}
       			})
