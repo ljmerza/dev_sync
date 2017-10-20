@@ -1,3 +1,52 @@
-[Wed Oct 11 14:16:41 2017] [info] Listening at "http://*:28173"
-[Wed Oct 11 14:16:41 2017] [info] Manager 27609 started
-[Wed Oct 11 14:16:41 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 20:50:25 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 20:50:25 2017] [info] Manager 23242 started
+[Thu Oct 19 20:50:25 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 20:50:58 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 20:50:58 2017] [info] Manager 23336 started
+[Thu Oct 19 20:50:58 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 20:55:56 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 20:55:56 2017] [info] Manager 24013 started
+[Thu Oct 19 20:55:56 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 20:58:33 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 20:58:33 2017] [info] Manager 28477 started
+[Thu Oct 19 20:58:33 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:03:10 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:03:10 2017] [info] Manager 30313 started
+[Thu Oct 19 21:03:10 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:06:49 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:06:49 2017] [info] Manager 30809 started
+[Thu Oct 19 21:06:49 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:07:46 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:07:46 2017] [info] Manager 30916 started
+[Thu Oct 19 21:07:46 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:09:19 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:09:19 2017] [info] Manager 31121 started
+[Thu Oct 19 21:09:19 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:15:38 2017] [info] Starting zero downtime software upgrade
+[Thu Oct 19 21:15:41 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:15:41 2017] [info] Manager 31639 started
+[Thu Oct 19 21:15:41 2017] [info] Upgrade successful, stopping 31121
+[Thu Oct 19 21:15:45 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:15:50 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:15:50 2017] [info] Manager 31647 started
+[Thu Oct 19 21:15:50 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Thu Oct 19 21:16:48 2017] [info] Listening at "http://*:28173"
+[Thu Oct 19 21:16:48 2017] [info] Manager 31802 started
+[Thu Oct 19 21:16:48 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Fri Oct 20 12:24:16 2017] [info] Listening at "http://*:28173"
+[Fri Oct 20 12:24:16 2017] [info] Manager 15336 started
+[Fri Oct 20 12:24:16 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Fri Oct 20 12:30:08 2017] [info] Listening at "http://*:28173"
+[Fri Oct 20 12:30:08 2017] [info] Manager 16202 started
+[Fri Oct 20 12:30:08 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Fri Oct 20 12:38:44 2017] [info] Listening at "http://*:28173"
+[Fri Oct 20 12:38:44 2017] [info] Manager 17692 started
+[Fri Oct 20 12:38:44 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Fri Oct 20 12:47:00 2017] [info] Starting zero downtime software upgrade
+[Fri Oct 20 12:47:03 2017] [info] Listening at "http://*:28173"
+[Fri Oct 20 12:47:03 2017] [info] Manager 19799 started
+[Fri Oct 20 12:47:03 2017] [info] Upgrade successful, stopping 17692
+[Fri Oct 20 12:47:04 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Fri Oct 20 12:47:24 2017] [info] Listening at "http://*:28173"
+[Fri Oct 20 12:47:24 2017] [info] Manager 19907 started
+[Fri Oct 20 12:47:24 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
