@@ -4,7 +4,6 @@ const config = require('./../config');
 
 
 let ppk_file;
-console.log('config.ppk_file_path: ', config.ppk_file_path);
 
 // try to get PPK file
 try {
