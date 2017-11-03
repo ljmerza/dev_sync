@@ -2,18 +2,13 @@ const Client = require('ssh2');
 const fs = require('fs');
 const config = require('./../config');
 
-let ppk_file_path;
-let ppk_file;
 
+let ppk_file;
+console.log('config.ppk_file_path: ', config.ppk_file_path);
 
 // try to get PPK file
-if(config.ppk_file_name) {
-	ppk_file_path = `C:\\Users\\${config.attuid}\\.ssh\\${config.ppk_file_name}.ppk`
-} else {
-	ppk_file_path = config.ppk_file_path || `C:\\Users\\${config.attuid}\\.ssh\\id_rsa.ppk`;
-}
 try {
-	ppk_file = fs.readFileSync(ppk_file_path);
+	ppk_file = fs.readFileSync(config.ppk_file_path);
 } catch(err) {
 	throw Error(`No ppk file found: ${err}`);
 }
