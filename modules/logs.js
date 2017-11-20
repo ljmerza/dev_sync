@@ -19,6 +19,7 @@ function _sync_logs(connections) {
 
 		log_files.push( ['logs', 'm5_log.log','logs/m5.log'] );
 		log_files.push( ['logs', 'error_log', 'logs/error.log'] );
+		log_files.push( ['logs', 'better_error_log', 'logs/better_error_log'] );
 		log_files.push( ['www/UD_api/log', 'production.log', 'logs/UD_api.log'] );
 		log_files.push( ['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'] );
 		log_files.push( ['www/wam_api/log', 'production.log', 'logs/WAM_api.log'] );
@@ -140,6 +141,7 @@ function reset_logs() {
 	const command = [
 		'logs/m5_log.log', 
 		'logs/error_log', 
+		'logs/better_error_log', 
 		'www/wam_api/log/production.log', 
 		'www/UD_api/log/production.log', 
 		'www/aqe_api/log/production.log', 
