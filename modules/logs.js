@@ -6,6 +6,19 @@ const config = require('./../config');
 const connections_object = require("./connections");
 const remote_commands = require('./remote_commands');
 
+// array of log files -> [remote path, remote log file name, local remote file name]
+let log_files = [
+	['logs', 'm5_log.log','logs/m5.log'],
+	['logs', 'error_log', 'logs/error.log'],
+	['logs', 'better_error_log', 'logs/better_error_log'],
+	['www/UD_api/log', 'production.log', 'logs/UD_api.log'],
+	['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'],
+	['www/wam_api/log', 'production.log', 'logs/WAM_api.log'],
+	['www/aqe_api/log', 'production.log', 'logs/AQE_api.log'],
+	['www/upm_api/log', 'production.log', 'logs/UPM_api.log'],
+	['www/utm_api/log', 'production.log', 'logs/UTM_api.log']
+];
+
 
 /*
 *	function _sync_logs()
@@ -13,20 +26,9 @@ const remote_commands = require('./remote_commands');
 */
 function _sync_logs(connections) {
 	return new Promise( (resolve, reject) => {
-
-		let log_files = [];
+		
 		let log_promises = [];
 
-		log_files.push( ['logs', 'm5_log.log','logs/m5.log'] );
-		log_files.push( ['logs', 'error_log', 'logs/error.log'] );
-		log_files.push( ['logs', 'better_error_log', 'logs/better_error_log'] );
-		log_files.push( ['www/UD_api/log', 'production.log', 'logs/UD_api.log'] );
-		log_files.push( ['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'] );
-		log_files.push( ['www/wam_api/log', 'production.log', 'logs/WAM_api.log'] );
-		log_files.push( ['www/aqe_api/log', 'production.log', 'logs/AQE_api.log'] );
-		log_files.push( ['www/upm_api/log', 'production.log', 'logs/UPM_api.log'] );
-		log_files.push( ['www/utm_api/log', 'production.log', 'logs/UTM_api.log'] );	 	
-			
 		// check for files syncs
 		for(let i=0,l=log_files.length;i<l;i++){
 			log_promises.push( _sync_a_log(log_files[i], connections) );
@@ -137,19 +139,10 @@ syncLogsInterval();
 */
 function reset_logs() {
 
-	// create clear log command
-	const command = [
-		'logs/m5_log.log', 
-		'logs/error_log', 
-		'logs/better_error_log', 
-		'www/wam_api/log/production.log', 
-		'www/UD_api/log/production.log', 
-		'www/aqe_api/log/production.log', 
-		'www/upm_api/log/production.log',
-		'www/utm_api/log/production.log'
-	]
+	// combine all log file paths into a command
+	const command = log_files.map(log_file => `${log_file[0]}/${log_file[1]}`)
 	.reduce( (command, dir) => `${command} cat /dev/null > ${config.remote_base}/${dir};`, '');
-
+	
 	console.log('reset logs...');
 
 	return new Promise( (resolve, reject) => {

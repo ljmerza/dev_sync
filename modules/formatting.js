@@ -20,7 +20,7 @@ function format_remote_path(local_path, slice_number, repo) {
 	if(repo.match(/cron/)){
 		return `${config.remote_base}/crons/${repo}/${remote_path}`;
 
-	} else if (['modules', 'external_modules'].includes(repo)) {
+	} else if (['modules', 'external_modules', 'dev_scripts'].includes(repo)) {
 		// if modules repo
 		return `${config.remote_base}/includes/${remote_path}`;
 
@@ -54,7 +54,7 @@ module.exports.format_paths = function(changed_file) {
 	if('ud' === repo) remote_path = format_remote_path(local_path, 4, repo);
 	else if('wam_cron' === repo) remote_path = format_remote_path(local_path, 5, repo);
 	else if('aqe_cron' === repo) remote_path = format_remote_path(local_path, 3, repo);
-	else if(['modules', 'external_modules'].includes(repo)) remote_path = format_remote_path(local_path, 2, repo);
+	else if(['modules', 'external_modules', 'dev_scripts'].includes(repo)) remote_path = format_remote_path(local_path, 2, repo);
 	
 	else if( ['ud_api', 'aqe_api', 'wam_api', 'teamdb_ember'].includes(repo) ) { 
 		remote_path = format_remote_path(local_path, 1, repo);	
