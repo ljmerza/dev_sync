@@ -14,8 +14,8 @@ function sync_files(all_files_data) {
 
 	// make sure all file paths are correct format for Windows/UNIX
 	all_files_data = formatting.format_files(all_files_data);
-
 	let synced_files_promises = [];
+
 
 	return new Promise( (resolve, reject) => {
 
@@ -46,6 +46,18 @@ function sync_files(all_files_data) {
 	})
 }
 
+/**
+*	function delete_remote(remote_path)
+*		deletes a remote folder or file
+*/
+function delete_remote(remote_path){
+	return new Promise( (resolve, reject) => {
+		remote_commands.execute_remote_command(`rm -rf ${remote_path}`)
+			.then( () => { return resolve(); })
+			.catch( err => { return reject(`delete_remote::${err}`); });
+	});
+}
+
 
 /*
 *	function sync_file(connection, file_data)
@@ -55,8 +67,22 @@ function sync_file(connection, file_data) {
 	return new Promise( (resolve, reject) => {
 		// create remote folder path if does not exist
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, err => {
-			if(err) { return reject(`sync_file::${err}`); };
-			return resolve(file_data.remote_path);
+			if(err) { 
+				// if error is it doesn't exist locally then it's a delete
+				if(err.code == 'ENOENT'){
+					delete_remote(file_data.remote_path)
+					.then( () => { return resolve(file_data.remote_path); })
+					.catch( err => { return reject(`sync_file::${err}`); });
+
+				} else {
+					// else something actually went wrong so reject
+					return reject(`sync_file::${err}`); 
+				}
+
+			} else {
+				return resolve(file_data.remote_path);
+			}
+			
 		});
 	});
 }

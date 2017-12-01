@@ -1,0 +1,22 @@
+[Mon Nov 27 17:55:03 2017] [info] Listening at "http://*:28173"
+[Mon Nov 27 17:55:03 2017] [info] Manager 19415 started
+[Mon Nov 27 17:55:03 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Mon Nov 27 18:05:34 2017] [info] Listening at "http://*:28173"
+[Mon Nov 27 18:05:34 2017] [info] Manager 22836 started
+[Mon Nov 27 18:05:34 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Mon Nov 27 18:27:49 2017] [error] Worker 22838 has no heartbeat, restarting
+[Mon Nov 27 19:26:13 2017] [info] Listening at "http://*:28173"
+[Mon Nov 27 19:26:13 2017] [info] Manager 10409 started
+[Mon Nov 27 19:26:13 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Mon Nov 27 19:26:19 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/UD_api/lib/UDServer/REST.pm line 132.
+
+[Mon Nov 27 19:26:21 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/UD_api/lib/UDServer/REST.pm line 132.
+
+[Mon Nov 27 19:26:45 2017] [info] Listening at "http://*:28173"
+[Mon Nov 27 19:26:45 2017] [info] Manager 10549 started
+[Mon Nov 27 19:26:45 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"
+[Mon Nov 27 19:27:03 2017] [error] malformed JSON string, neither tag, array, object, number, string or atom, at character offset 0 (before "(end of string)") at /opt/lm240n/www/UD_api/lib/UDServer/REST.pm line 132.
+
+[Mon Nov 27 19:28:11 2017] [info] Listening at "http://*:28173"
+[Mon Nov 27 19:28:11 2017] [info] Manager 11015 started
+[Mon Nov 27 19:28:11 2017] [info] Creating process id file "/opt/lm240n/www/UD_api/hypnotoad.pid"

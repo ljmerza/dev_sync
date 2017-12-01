@@ -71,15 +71,15 @@ function execute_remote_command(command) {
 		.then( ssh_connection => {
 			// once uploaded array is empty then execute command to reset permissions
 			ssh_connection.exec(command, (err, stream) => {
-				if(err) { ssh_connection.end(); return reject(`execute_remote_command::${err}`); }
+				if(err) { console.log('err: ', err);ssh_connection.end(); return reject(`execute_remote_command::${err}`); }
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {
 					data = formatting.formatServerStdOut(data);
 					if(command == 'hostname') console.log('\nConnected with:', data);
 					else console.log(data);
-				}).stderr.on('data', data => {
-					data = formatting.formatServerStdOut(data).trim();
+				}).stderr.on('data', error => {
+					data = formatting.formatServerStdOut(error).trim();
 					// dont show certain errors
 					if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
 						console.log(data);

@@ -26,14 +26,23 @@ Object.keys(config.local_paths)
 	// create folder watch
 	watch.watchTree(element.dir, function (local_path, prev, curr) {
 
+		// console.log('local_path: ', local_path);
+		// console.log('prev, curr: ', prev);
+		// console.log('curr: ', curr);
+
 		// if initial sync then ignore
 		if (typeof local_path == "object" && prev === null && curr === null) return;
 
 		// if git file then ignore
 		if ( local_path.match(/.git/) ) return;
 
-		// push changed file to array
-		changed_files.push({local_path:local_path, remote_path: '', repo:element.repo});
+		// if current file is null then its a delete else just push file change
+		if(curr == null){
+			changed_files.push({local_path:local_path, remote_path: '', repo:element.repo});
+		} else {
+			changed_files.push({local_path:local_path, remote_path: '', repo:element.repo});
+		}
+		
 
 		// clear last timeout and start a new one
 		clearTimeout(current_timer);
@@ -72,7 +81,7 @@ function sftp_upload() {
 				local_path, 
 				remote_path, 
 				base_path,
-				repo:file.repo,
+				repo:file.repo
 			};
 		});
 	
