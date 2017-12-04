@@ -73,15 +73,23 @@ function sftp_upload() {
 		// for each file, format paths
 		const modified_upload_files = upload_files.map( file => {
 
+			// if not a file (is a dir) then mark it as a dir
+			const dir = /\.\w{2,3}$/.test(file.local_path) ? false : true;
+
+			// get local and remote path
 			const [local_path, remote_path] = formatting.format_paths(file);
-			const base_path = path.dirname(remote_path);
+
+			// if fir then set base path to 'file' path else set base path of file
+			const base_path = dir ? remote_path : path.dirname(remote_path);
+
 
 			// return new file structure
 			return {
 				local_path, 
 				remote_path, 
 				base_path,
-				repo:file.repo
+				repo:file.repo,
+				dir
 			};
 		});
 	

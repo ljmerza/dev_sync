@@ -15,13 +15,22 @@ function mkdirs(all_dirs) {
 	// get all base paths and format them for *nix
 	const base_paths = all_dirs.map( file => file.base_path.replace(/\\/g, '/') );
 
+	// get all directories to log them once created
+	const dirs = all_dirs.filter(file => file.dir);
+
 	// get all unique directories and create command to send
 	const command = [...new Set(base_paths)]
 	.reduce( (command, dir) => `${command}mkdir -p ${dir};`, '' );
 
 	return new Promise( (resolve, reject) => {
 		execute_remote_command(command)
-		.then( () => { return resolve(); })
+		.then( () => {
+
+			// log any directories created and return resolved promise
+			console.log('directories created: ');
+			dirs.forEach( dir => console.log(`	${dir.remote_path}`) );
+			return resolve(); 
+		})
 		.catch( err => { return reject(`mkdirs::${err}`); });
 	});
 }

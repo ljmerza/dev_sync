@@ -29,7 +29,7 @@ function sync_files(all_files_data) {
 				for(let i=0; i<all_files_data.length;i++){
 
 					// if local object is a file then upload else its a dir so skip
-					if( /\.\w{2,3}$/.test(all_files_data[i].local_path) ){
+					if( ! all_files_data[i].dir ){
 						synced_files_promises.push( sync_file(connection, all_files_data[i]) );
 					}
 				}

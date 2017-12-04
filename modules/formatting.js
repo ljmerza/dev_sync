@@ -77,7 +77,8 @@ module.exports.format_files = function(all_files_data) {
 			remote_path: file.remote_path.replace(/\\/g, '/'),
 			local_path: file.local_path.replace(/\/|\\/g, '\\'),
 			base_path: file.base_path.replace(/\\/g, '/'),
-			repo: file.repo
+			repo: file.repo,
+			dir: file.dir
 		};
 	});
 }
