@@ -1,5 +1,6 @@
 const watch = require('watch');
 const path = require('path');
+const fs = require('fs');
 const Promise = require("bluebird");
 
 const connections_object = require("./modules/connections");
@@ -74,7 +75,7 @@ function sftp_upload() {
 		const modified_upload_files = upload_files.map( file => {
 
 			// if not a file (is a dir) then mark it as a dir
-			const dir = /\.\w{2,3}$/.test(file.local_path) ? false : true;
+			const dir = fs.lstatSync(file.local_path).isDirectory();
 
 			// get local and remote path
 			const [local_path, remote_path] = formatting.format_paths(file);

@@ -66,31 +66,42 @@ function _sync_a_log(file, connections) {
 		let read_stream_local;
 		let read_stream_remote;
 
-		try {
-			read_stream_local = fs.createReadStream(local_file_name);
-			read_stream_remote = sftp_connection.createReadStream(`${config.remote_base}/${relative_file_path}/${remote_file_name}`);
-		} catch (err) {
-			return reject(`_sync_a_log::${err}`);
-		}
-		
-		// compare files
-		streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
-			// if error then we most likely don't have the remote file setup yet so create it
-			if(err) { 
-				// need to implement
-				return resolve('File missing.');
-			}
+		// create remote file if doesn't exist
+		remote_commands.execute_remote_command(
+			` mkdir -p ${config.remote_base}/${relative_file_path}; touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`
+		).then( () => {
 
-			// if not equal then get remote file and sync to local
-			if(!equal){
-				sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
-					if(err) { return reject(`_sync_a_log::${err}`); }
-					return resolve(`updated local log file ${local_file_name}`);
-				});
-			} else {
-				return resolve(`local log file ${local_file_name} already synced`);
+			try {
+				read_stream_local = fs.createReadStream(local_file_name);
+				read_stream_remote = sftp_connection.createReadStream(`${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+			} catch (err) {
+				return reject(`_sync_a_log::${err}`);
 			}
-		}); // end streamEqual		
+			
+			// compare files
+			streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
+				// if error then we most likely don't have the remote file setup yet so create it
+				if(err) { 
+					// need to implement
+					return resolve('File missing.');
+				}
+
+				// if not equal then get remote file and sync to local
+				if(!equal){
+					sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
+						if(err) { return reject(`_sync_a_log::${err}`); }
+						return resolve(`updated local log file ${local_file_name}`);
+					});
+				} else {
+					return resolve(`local log file ${local_file_name} already synced`);
+				}
+			}); // end streamEqual	
+		})
+		.catch(err => {
+			return reject(`_sync_a_log::${err}`);
+		})
+
+			
 	});
 }
 

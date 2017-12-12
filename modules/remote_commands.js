@@ -25,10 +25,12 @@ function mkdirs(all_dirs) {
 	return new Promise( (resolve, reject) => {
 		execute_remote_command(command)
 		.then( () => {
-
+			
 			// log any directories created and return resolved promise
-			console.log('directories created: ');
-			dirs.forEach( dir => console.log(`	${dir.remote_path}`) );
+			if(dirs.length > 0){
+				console.log('directories created: ');
+				dirs.forEach( dir => console.log(`	${dir.remote_path}`) );
+			}
 			return resolve(); 
 		})
 		.catch( err => { return reject(`mkdirs::${err}`); });
