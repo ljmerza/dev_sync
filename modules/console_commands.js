@@ -172,7 +172,7 @@ process.stdin.on('keypress', function (ch, key) {
         udember (build files only)
 
     restart hypnotoad with *hyp:
-        hyp - udapi, thpy - teamdb, 
+        hyp - udapi, thyp - teamdb, 
         ahyp - aqe, phyp - upm, whyp - wam
 
     reset logs with 'logs' command (no quotes)
