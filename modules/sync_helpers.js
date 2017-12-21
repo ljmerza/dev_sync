@@ -7,6 +7,7 @@ const Promise = require("bluebird");
 const path = require('path');
 const Gauge = require("gauge");
 
+
 let number_of_files = 0;
 let number_files_uploaded = 0;
 let gauge;
