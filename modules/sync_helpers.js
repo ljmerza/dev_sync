@@ -5,6 +5,11 @@ const remote_commands = require('./remote_commands');
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
 const path = require('path');
+const Gauge = require("gauge");
+
+let number_of_files = 0;
+let number_files_uploaded = 0;
+let gauge;
 
 /*
 *	function sync_files(all_files_data)
@@ -12,10 +17,15 @@ const path = require('path');
 */
 function sync_files(all_files_data) {
 
+	gauge = new Gauge();
+
 	// make sure all file paths are correct format for Windows/UNIX
 	all_files_data = formatting.format_files(all_files_data);
 	let synced_files_promises = [];
 
+	// set loader config
+	number_of_files = all_files_data.length;
+	number_files_uploaded = 0;
 
 	return new Promise( (resolve, reject) => {
 
@@ -26,7 +36,7 @@ function sync_files(all_files_data) {
 			.then( connection => {
 
 				// for each file -> sync it
-				for(let i=0; i<all_files_data.length;i++){
+				for(let i=0; i<number_of_files;i++){
 
 					// if local object is a file then upload else its a dir so skip
 					if( ! all_files_data[i].dir ){
@@ -37,13 +47,18 @@ function sync_files(all_files_data) {
 				// once all files are synced -> update permissions
 				Promise.all(synced_files_promises)
 				.then( files => {
+					gauge.hide();
+
 					connection.ssh_connection.end();
 					connection.sftp_connection.end();
 					// update file permissions and reset logs
 					remote_commands.update_permissions(all_files_data);
 					return resolve(files);
 				})
-				.catch( err => { return reject(`sync_files::${err}`); });
+				.catch( err => { 
+					gauge.hide()
+					return reject(`sync_files::${err}`); 
+				});
 			})
 			.catch( err => { return reject(`sync_files::${err}`); });
 		});
@@ -75,7 +90,12 @@ function sync_file(connection, file_data) {
 				// if error is it doesn't exist locally then it's a delete
 				if(err.code == 'ENOENT'){
 					delete_remote(file_data.remote_path)
-					.then( () => { return resolve(file_data.remote_path); })
+					.then( () => {
+						number_files_uploaded++;
+						gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
+						gauge.pulse(file_data.remote_path);
+						return resolve(file_data.remote_path); 
+					})
 					.catch( err => { return reject(`sync_file::${err}`); });
 
 				} else {
@@ -84,6 +104,9 @@ function sync_file(connection, file_data) {
 				}
 
 			} else {
+				number_files_uploaded++;
+				gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
+				gauge.pulse(file_data.remote_path);
 				return resolve(file_data.remote_path);
 			}
 			

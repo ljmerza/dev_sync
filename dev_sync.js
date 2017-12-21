@@ -50,7 +50,7 @@ Object.keys(config.local_paths)
 		current_timer = setTimeout( () => {
 			sftp_upload()
 			.catch( err => console.log(`dev_sync::${err}`) );
-		}, 1000);
+		}, 200);
 
 	});
 

@@ -82,7 +82,7 @@ function execute_remote_command(command) {
 		.then( ssh_connection => {
 			// once uploaded array is empty then execute command to reset permissions
 			ssh_connection.exec(command, (err, stream) => {
-				if(err) { console.log('err: ', err);ssh_connection.end(); return reject(`execute_remote_command::${err}`); }
+				if(err) { ssh_connection.end(); return reject(`execute_remote_command::${err}`); }
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {

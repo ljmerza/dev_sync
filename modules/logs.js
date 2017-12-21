@@ -81,10 +81,7 @@ function _sync_a_log(file, connections) {
 			// compare files
 			streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
 				// if error then we most likely don't have the remote file setup yet so create it
-				if(err) { 
-					// need to implement
-					return resolve('File missing.');
-				}
+				if(err) { return reject(`_sync_a_log::${err}`); }
 
 				// if not equal then get remote file and sync to local
 				if(!equal){
@@ -99,9 +96,8 @@ function _sync_a_log(file, connections) {
 		})
 		.catch(err => {
 			return reject(`_sync_a_log::${err}`);
-		})
-
-			
+		});
+		
 	});
 }
 
