@@ -71,18 +71,22 @@ function _sync_a_log(file, connections) {
 			` mkdir -p ${config.remote_base}/${relative_file_path}; touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`
 		).then( () => {
 
+			console.log('local_file_name: ', local_file_name);
+
 			try {
 				read_stream_local = fs.createReadStream(local_file_name);
 				read_stream_remote = sftp_connection.createReadStream(`${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 			} catch (err) {
 				return reject(`_sync_a_log::${err}`);
 			}
+
+			console.log('`${config`: ', `${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 			
 			// compare files
 			streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
 				// if error then we most likely don't have the remote file setup yet so create it
 				if(err) { return reject(`_sync_a_log::${err}`); }
-
+				console.log('equal: ', equal);
 				// if not equal then get remote file and sync to local
 				if(!equal){
 					sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
@@ -110,27 +114,31 @@ function syncLogsInterval() {
 
 	let syncing_done = true;
 
-	// create ssh connection
-	connections_object.sftp_connection_promise()
-	.then( connections => {
+	
 
-		setInterval( () => {
-			// if last syncing is done then sync again else do nothing
-			if(syncing_done){
-				syncing_done = false;
-				
-					
-					// sync logs
-					_sync_logs(connections)
-					// .then (message => console.log(message) )
-					.catch ( err => console.log(`syncLogsInterval::${err}`) )
-					.finally( () => {
-						// when syncing done change syncing flag and close ssh connections
-						syncing_done = true;
-					});
-			}
-		}, 2000);
-	});
+	setInterval( () => {
+		// if last syncing is done then sync again else do nothing
+		if(syncing_done){
+			syncing_done = false;
+
+			// create ssh connection
+			connections_object.sftp_connection_promise()
+			.then( connections => {				
+				// sync logs
+				_sync_logs(connections)
+				// .then (message => console.log(message) )
+				.catch ( err => console.log(`syncLogsInterval::${err}`) )
+				.finally( () => {
+					// when syncing done change syncing flag and close ssh connections
+					syncing_done = true;
+					connections.ssh_connection.end();
+					connections.sftp_connection.end();
+				});
+			})
+			.catch( err => console.log(`syncLogsInterval::${err}`) );
+		}
+	}, 2000);
+
 }
 
 // start syncing logs

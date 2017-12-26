@@ -80,9 +80,13 @@ function execute_remote_command(command) {
 		// connect to server
 		connections_object.ssh_connection_promise()
 		.then( ssh_connection => {
+
 			// once uploaded array is empty then execute command to reset permissions
 			ssh_connection.exec(command, (err, stream) => {
-				if(err) { ssh_connection.end(); return reject(`execute_remote_command::${err}`); }
+				if(err){ 
+					ssh_connection.end(); 
+					return reject(`execute_remote_command::${err}`); 
+				}
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {
@@ -96,11 +100,14 @@ function execute_remote_command(command) {
 						console.log(data);
 					}
       			})
-				.on('close', () => { ssh_connection.end(); return resolve(); });	
-
+				.on('close', () => { 
+					ssh_connection.end(); 
+					return resolve(); 
+				});
 			});
+
 		})
-		.catch( err => { return reject(`execute_remote_command::${err}`); });
+		.catch( err => reject(`execute_remote_command::${err}`) );
 	});
 }
 
