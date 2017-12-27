@@ -63,46 +63,33 @@ Object.keys(config.local_paths)
 *	function sftp_upload()
 * 		uploads file to dev server, sets permissions, 
 */
-function sftp_upload() {
-
+async function sftp_upload() {
 	// copy array and empty old one
 	const upload_files = changed_files.slice();
 	changed_files = [];
 
-	return new Promise( (resolve, reject) => {
-
+	return new Promise(async (resolve, reject) => {
 		// for each file, format paths
 		const modified_upload_files = upload_files.map( file => {
-
 			// if not a file (is a dir) then mark it as a dir
 			const dir = fs.lstatSync(file.local_path).isDirectory();
-
 			// get local and remote path
 			const [local_path, remote_path] = formatting.format_paths(file);
-
 			// if fir then set base path to 'file' path else set base path of file
 			const base_path = dir ? remote_path : path.dirname(remote_path);
-
-
 			// return new file structure
-			return {
-				local_path, 
-				remote_path, 
-				base_path,
-				repo:file.repo,
-				dir
-			};
+			return {local_path, remote_path, base_path, repo:file.repo, dir};
 		});
 	
 		// sync files to remote
-		sync_helpers.sync_files(modified_upload_files)
-		.then( files => {
+		try {
+			const files = await sync_helpers.sync_files(modified_upload_files);
 			// then log files synced
 			if(files.length) console.log('files synced: ');
 			files.forEach( file => console.log('	', file) )
-		})
-		.catch( err => { return reject(`sftp_upload::${err}`); });
-
+		} catch(err){
+			return reject(`sftp_upload::${err}`);
+		}
 	});
 }
 

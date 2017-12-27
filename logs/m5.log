@@ -1,0 +1,148 @@
+
+# ================================================================================
+# Wed Dec 27 14:39:06 2017
+# ================================================================================
+
+# [/opt/lm240n/includes/M5/AQE.pm, line 2758]
+unique_fields =  [];
+
+
+
+# ================================================================================
+# Wed Dec 27 14:39:06 2017
+# ================================================================================
+
+# [/opt/lm240n/includes/M5/AQE.pm, line 2801]
+queries =  [
+          [
+            {
+              'basic' => 0,
+              'fieldName' => 'product',
+              'operator' => '=',
+              'setID' => 34838,
+              'value' => 'Linebacker'
+            },
+            {
+              'basic' => 0,
+              'fieldName' => 'region',
+              'operator' => '=',
+              'setID' => 34838,
+              'value' => 'MW'
+            },
+            {
+              'basic' => 1,
+              'fieldName' => 'account_number',
+              'operator' => '=',
+              'setID' => 34837,
+              'value' => '402-175-9264'
+            }
+          ],
+          [
+            {
+              'basic' => 0,
+              'fieldName' => 'product',
+              'operator' => '=',
+              'setID' => 34839,
+              'value' => 'Linebacker'
+            },
+            $VAR1->[0][2]
+          ]
+        ];
+
+
+
+# ================================================================================
+# Wed Dec 27 14:39:06 2017
+# ================================================================================
+
+# [/opt/lm240n/includes/M5/REST/APIGateway/RDS.pm, line 324]
+request =  {
+          'Account Number' => '402-175-9264',
+          'Assign Type' => '',
+          'Automation' => '',
+          'Buisness Name' => '',
+          'CSS' => '',
+          'ClaimByAfter' => '',
+          'ClaimByBefore' => '',
+          'ClaimByOn' => '',
+          'Customer Type' => '',
+          'DispResAfter' => '',
+          'DispResBefore' => '',
+          'DispResOn' => '',
+          'Email Subject' => '',
+          'Indicators' => '',
+          'Issue Type' => '',
+          'Legacy' => '',
+          'Owner' => '',
+          'Pending Reason' => '',
+          'Priority' => undef,
+          'Product' => 'Linebacker',
+          'Region' => 'MW',
+          'Request' => '',
+          'RequestType' => 'ApplyFilter',
+          'Segment' => '',
+          'Service' => '',
+          'Status' => '',
+          'Strata' => '',
+          'Strata Group' => '',
+          'Track Num' => '',
+          'WCReassign' => ''
+        };
+
+
+
+# ================================================================================
+# Wed Dec 27 14:39:06 2017
+# ================================================================================
+
+# [/opt/lm240n/includes/M5/REST/APIGateway/RDS.pm, line 324]
+request =  {
+          'Account Number' => '402-175-9264',
+          'Assign Type' => '',
+          'Automation' => '',
+          'Buisness Name' => '',
+          'CSS' => '',
+          'ClaimByAfter' => '',
+          'ClaimByBefore' => '',
+          'ClaimByOn' => '',
+          'Customer Type' => '',
+          'DispResAfter' => '',
+          'DispResBefore' => '',
+          'DispResOn' => '',
+          'Email Subject' => '',
+          'Indicators' => '',
+          'Issue Type' => '',
+          'Legacy' => '',
+          'Owner' => '',
+          'Pending Reason' => '',
+          'Priority' => undef,
+          'Product' => 'Linebacker',
+          'Region' => '',
+          'Request' => '',
+          'RequestType' => 'ApplyFilter',
+          'Segment' => '',
+          'Service' => '',
+          'Status' => '',
+          'Strata' => '',
+          'Strata Group' => '',
+          'Track Num' => '',
+          'WCReassign' => ''
+        };
+
+
+
+# ================================================================================
+# Wed Dec 27 14:40:47 2017
+# ================================================================================
+
+# [/opt/lm240n/includes/M5/AQE.pm, line 2845]
+results =  [
+          {
+            'result' => 'M5::REST::APIGateway::RDS->M5::REST::APIGateway::RDS::get_filtered_worklist:Region Subinks are not created'
+          },
+          {
+            'result' => 'M5::REST::APIGateway::RDS->M5::REST::APIGateway::RDS::get_filtered_worklist:table is not created'
+          }
+        ];
+
+

@@ -21,28 +21,25 @@ let log_files = [
 
 
 /*
-*	function _sync_logs()
+*	function _sync_logs(connections)
 * 		syncs log files from server to host
 */
-function _sync_logs(connections) {
-	return new Promise( (resolve, reject) => {
+async function _sync_logs(connections) {
+	return new Promise( async (resolve, reject) => {
 		
-		let log_promises = [];
+		let sync_results = [];
 
 		// check for files syncs
-		for(let i=0,l=log_files.length;i<l;i++){
-			log_promises.push( _sync_a_log(log_files[i], connections) );
-		}
-
-		// once all files synced log and close connections
-		Promise.all(log_promises)
-		.then( message => { 
-			return resolve(message);
-		})
-		.catch( err => {
-			return reject(`_sync_logs::${err}`);
+		log_files.forEach(async log_file => {
+			try {
+				let message = await _sync_a_log(log_file, connections)
+				sync_results.push(message);
+			} catch(err){
+				reject(`_sync_logs::${err}`);
+			}
 		});
 
+		return resolve(sync_results);
 	});
 }
 
@@ -51,12 +48,12 @@ function _sync_logs(connections) {
 *	function _sync_a_log(file, connections)
 * 		syncs a log file from server to host
 */
-function _sync_a_log(file, connections) {
+async function _sync_a_log(file, connections) {
 
 	const sftp_connection = connections.sftp_connection;
 	const ssh_connection = connections.ssh_connection;
 
-	return new Promise( (resolve, reject) => {
+	return new Promise( async (resolve, reject) => {
 
 		const relative_file_path = file[0];
 		const remote_file_name = file[1];
@@ -66,42 +63,43 @@ function _sync_a_log(file, connections) {
 		let read_stream_local;
 		let read_stream_remote;
 
-		// create remote file if doesn't exist
-		remote_commands.execute_remote_command(
-			` mkdir -p ${config.remote_base}/${relative_file_path}; touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`
-		).then( () => {
+		try {
 
-			console.log('local_file_name: ', local_file_name);
+			// create remote file if doesn't exist
+			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}; touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+			// create local file if doesnt exist
+			await remote_commands.execute_command(`touch ../${local_file_name}`);
 
+			// try to create read/write streams for local/remote files
 			try {
 				read_stream_local = fs.createReadStream(local_file_name);
 				read_stream_remote = sftp_connection.createReadStream(`${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 			} catch (err) {
 				return reject(`_sync_a_log::${err}`);
 			}
-
-			console.log('`${config`: ', `${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 			
-			// compare files
-			streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
-				// if error then we most likely don't have the remote file setup yet so create it
+			// compare files to see if we need to sync them
+			streamEqual(read_stream_local, read_stream_remote, async (err, equal) => {
 				if(err) { return reject(`_sync_a_log::${err}`); }
-				console.log('equal: ', equal);
+				
 				// if not equal then get remote file and sync to local
 				if(!equal){
-					sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
-						if(err) { return reject(`_sync_a_log::${err}`); }
-						return resolve(`updated local log file ${local_file_name}`);
-					});
+
+					// try to sync log file
+					try {
+					 	await sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name)
+					} catch(err){
+						return reject(`_sync_a_log::${err}`)
+					}
+					return resolve(`updated local log file ${local_file_name}`);
 				} else {
 					return resolve(`local log file ${local_file_name} already synced`);
 				}
-			}); // end streamEqual	
-		})
-		.catch(err => {
+			});	
+		}
+		catch(err){
 			return reject(`_sync_a_log::${err}`);
-		});
-		
+		}		
 	});
 }
 
@@ -110,64 +108,60 @@ function _sync_a_log(file, connections) {
 *	function syncLogsInterval()
 * 		download log files periodically
 */
-function syncLogsInterval() {
-
+(async function syncLogsInterval() {
 	let syncing_done = true;
 
-	
+	setInterval( async () => {
 
-	setInterval( () => {
 		// if last syncing is done then sync again else do nothing
 		if(syncing_done){
+
+			// don't allow any other syncing going on
 			syncing_done = false;
 
 			// create ssh connection
-			connections_object.sftp_connection_promise()
-			.then( connections => {				
-				// sync logs
-				_sync_logs(connections)
-				// .then (message => console.log(message) )
-				.catch ( err => console.log(`syncLogsInterval::${err}`) )
-				.finally( () => {
-					// when syncing done change syncing flag and close ssh connections
-					syncing_done = true;
-					connections.ssh_connection.end();
-					connections.sftp_connection.end();
-				});
-			})
-			.catch( err => console.log(`syncLogsInterval::${err}`) );
+			const connections = await connections_object.sftp_connection()
+
+			console.log('connections: ', connections);
+
+			// try to sync all logs
+			try {
+				await _sync_logs(connections);
+			} catch(err){
+				console.log(`syncLogsInterval::${err}`)
+			}
+
+			syncing_done = true;
+			connections.ssh_connection.close();
+			connections.sftp_connection.close();
 		}
+		
 	}, 2000);
-
-}
-
-// start syncing logs
-syncLogsInterval();
-
-
-
-
+});
 
 /*
 *	function reset_logs()
 * 		resets logs
 */
-function reset_logs() {
+async function reset_logs() {
 
 	// combine all log file paths into a command
 	const command = log_files.map(log_file => `${log_file[0]}/${log_file[1]}`)
 	.reduce( (command, dir) => `${command} cat /dev/null > ${config.remote_base}/${dir};`, '');
-	
-	console.log('reset logs...');
 
-	return new Promise( (resolve, reject) => {
-		remote_commands.execute_remote_command(command)
-		.then( () => resolve() )
-		.catch( err => reject(`reset_logs::${err}`) );
-	});
+	console.log('command: ', command);
 	
+	console.log('resetting logs...');
+
+	// try to reset remote logs
+	return new Promise(async (resolve, reject) => {
+		try {
+			await remote_commands.execute_remote_command(command);
+			return resolve();
+		} catch(err){
+			return reject(`reset_logs::${err}`);
+		}
+	});	
 }
 
-module.exports = {
-	reset_logs
-};
+module.exports = {reset_logs};
