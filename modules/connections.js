@@ -56,4 +56,16 @@ async function sftp_connection() {
 	});
 }
 
-module.exports = {ssh_connection, sftp_connection};
+async function ssh_exec(command) {
+	let ssh_connection = new ssh2_promise({
+			host: config.host,
+			port: config.port,
+			username: config.attuid,
+			privateKey: ppk_file
+		});
+
+	return ssh_connection.exec(command);
+}
+
+
+module.exports = {ssh_connection, sftp_connection, ssh_exec};

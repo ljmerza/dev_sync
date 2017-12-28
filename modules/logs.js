@@ -9,14 +9,14 @@ const remote_commands = require('./remote_commands');
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
 	['logs', 'm5_log.log','logs/m5.log'],
-	['logs', 'error_log', 'logs/error.log'],
-	['logs', 'better_error_log', 'logs/better_error_log'],
-	['www/UD_api/log', 'production.log', 'logs/UD_api.log'],
-	['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'],
-	['www/wam_api/log', 'production.log', 'logs/WAM_api.log'],
-	['www/aqe_api/log', 'production.log', 'logs/AQE_api.log'],
-	['www/upm_api/log', 'production.log', 'logs/UPM_api.log'],
-	['www/utm_api/log', 'production.log', 'logs/UTM_api.log']
+	// ['logs', 'error_log', 'logs/error.log'],
+	// ['logs', 'better_error_log', 'logs/better_error_log'],
+	// ['www/UD_api/log', 'production.log', 'logs/UD_api.log'],
+	// ['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'],
+	// ['www/wam_api/log', 'production.log', 'logs/WAM_api.log'],
+	// ['www/aqe_api/log', 'production.log', 'logs/AQE_api.log'],
+	// ['www/upm_api/log', 'production.log', 'logs/UPM_api.log'],
+	// ['www/utm_api/log', 'production.log', 'logs/UTM_api.log']
 ];
 
 
@@ -32,12 +32,15 @@ async function _sync_logs(connections) {
 		// check for files syncs
 		log_files.forEach(async log_file => {
 			try {
-				let message = await _sync_a_log(log_file, connections)
+				let message = await _sync_a_log(log_file, connections);
+				console.log('message: ', message);
 				sync_results.push(message);
 			} catch(err){
 				reject(`_sync_logs::${err}`);
 			}
 		});
+
+		console.log('sync_results: ', sync_results);
 
 		return resolve(sync_results);
 	});
@@ -65,8 +68,12 @@ async function _sync_a_log(file, connections) {
 
 		try {
 
+
 			// create remote file if doesn't exist
-			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}; touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
+			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+
+			console.log('test: ', relative_file_path);
 			// create local file if doesnt exist
 			await remote_commands.execute_command(`touch ../${local_file_name}`);
 
@@ -74,7 +81,7 @@ async function _sync_a_log(file, connections) {
 			try {
 				read_stream_local = fs.createReadStream(local_file_name);
 				read_stream_remote = sftp_connection.createReadStream(`${config.remote_base}/${relative_file_path}/${remote_file_name}`);
-			} catch (err) {
+			} catch(err) {
 				return reject(`_sync_a_log::${err}`);
 			}
 			
@@ -122,11 +129,10 @@ async function _sync_a_log(file, connections) {
 			// create ssh connection
 			const connections = await connections_object.sftp_connection()
 
-			console.log('connections: ', connections);
-
 			// try to sync all logs
 			try {
-				await _sync_logs(connections);
+				const messages = await _sync_logs(connections);
+				console.log('messages: ', messages);
 			} catch(err){
 				console.log(`syncLogsInterval::${err}`)
 			}
@@ -137,7 +143,7 @@ async function _sync_a_log(file, connections) {
 		}
 		
 	}, 2000);
-});
+})();
 
 /*
 *	function reset_logs()
