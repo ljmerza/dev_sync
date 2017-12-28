@@ -93,11 +93,16 @@ async function execute_remote_command(command) {
 	return new Promise( async (resolve, reject) => {
 		// connect to server
 
-
+		let ssh_connection;
+		try {
+			ssh_connection = await connections_object.ssh_connection_promise();
+		} catch(err){
+			return reject(`execute_remote_command::${err}`);
+		}
 
 		try {
 			console.log('command: ', command);
-			let data = await connections_object.ssh_exec(command);
+			let data = await ssh_connection.exec(command);
 			console.log('command: ', command);
 
 
@@ -106,10 +111,14 @@ async function execute_remote_command(command) {
 			if(command == 'hostname') console.log('\nConnected with:', data);
 			else console.log(data);
 
+			console.log('ssh_connection: ', ssh_connection);
+
+			ssh_connection.end(); 
 			return resolve();
 
 		} catch(err){
 			// on erro close ssh and return err rejection
+			ssh_connection.end(); 
 			return reject(`execute_remote_command::${err}`); 
 		}
 

@@ -36,7 +36,7 @@ async function sync_files(all_files_data) {
 		let connection;
 		try {
 			await remote_commands.mkdirs(all_files_data_formatted);
-			connection = await connections_object.sftp_connection();
+			connection = await connections_object.sftp_connection_promise();
 			
 			// for each file -> sync it
 			all_files_data_formatted.forEach( async file => {
@@ -53,8 +53,8 @@ async function sync_files(all_files_data) {
 				gauge.hide();
 
 				// close connections
-				connection.ssh_connection.close();
-				connection.sftp_connection.close();
+				connection.ssh_connection.end();
+				connection.sftp_connection.end();
 
 				// try to update permissions
 				try {
@@ -69,8 +69,8 @@ async function sync_files(all_files_data) {
 		} catch(err){
 
 			// close any open connections
-			if(connection.ssh_connection) connection.ssh_connection.close();
-			if(connection.sftp_connection) connection.sftp_connection.close();
+			if(connection.ssh_connection) connection.ssh_connection.end();
+			if(connection.sftp_connection) connection.sftp_connection.end();
 
 			// hide gauge and return error
 			gauge.hide();

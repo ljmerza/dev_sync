@@ -3,7 +3,7 @@ const fs = require('fs');
 const streamEqual = require('stream-equal');
 
 const config = require('./../config');
-const connections_object = require("./connections");
+const sftp_connection_promise = require("./connections");
 const remote_commands = require('./remote_commands');
 
 // array of log files -> [remote path, remote log file name, local remote file name]
@@ -127,7 +127,7 @@ async function _sync_a_log(file, connections) {
 			syncing_done = false;
 
 			// create ssh connection
-			const connections = await connections_object.sftp_connection()
+			const connections = await sftp_connection_promise()
 
 			// try to sync all logs
 			try {
@@ -138,8 +138,8 @@ async function _sync_a_log(file, connections) {
 			}
 
 			syncing_done = true;
-			connections.ssh_connection.close();
-			connections.sftp_connection.close();
+			connections.ssh_connection.end();
+			connections.sftp_connection.end();
 		}
 		
 	}, 2000);

@@ -1,6 +1,7 @@
-const ssh2_promise = require('ssh2-promise');
+const Client = require('ssh2');
 const fs = require('fs');
 const config = require('./../config');
+
 
 let ppk_file;
 
@@ -11,61 +12,54 @@ try {
 	throw Error(`No ppk file found: ${err}`);
 }
 
+
+
 /*
-*	ssh_connection()
-* 		return a ssh connection
+*	ssh_connection_promise()
+* 		return a ssh connection promise
 */
-async function ssh_connection() {
-	return new Promise( async (resolve, reject) => {
+function ssh_connection_promise() {
+	return new Promise( (resolve, reject) => {
 		// create ssh object
-		let ssh_connection = new ssh2_promise({
-			host: config.host,
-			port: config.port,
-			username: config.attuid,
-			privateKey: ppk_file
-		});
+		let ssh_connection = new Client();
 
 		// connect to server
-		let connection;
-		try {
-			connection = await ssh_connection.connect();
-			return resolve(connection);
-		} catch(err){
-			return reject(`ssh_connection::${err}`);
-		}
-	});
-}
-
-/*
-*	sftp_connection()
-* 		return a sFTP connection
-*/
-async function sftp_connection() {
-	return new Promise( async (resolve, reject) => {
-		let sftp_connection;
-
-		try {
-			ssh_connection = await ssh_connection();
-			const sftp_connection = await ssh_connection.sftp();
-			return resolve({sftp_connection, ssh_connection});
-		} catch(err) {
-			// if we already created ssh connection then end it
-			if(ssh_connection) ssh_connection.close();  
-			return reject(`sftp_connection::${err}`);
-		}
-	});
-}
-
-async function ssh_exec(command) {
-	let ssh_connection = new ssh2_promise({
+		ssh_connection.connect({
 			host: config.host,
 			port: config.port,
 			username: config.attuid,
 			privateKey: ppk_file
-		});
-
-	return ssh_connection.exec(command);
+		})
+		ssh_connection.on('ready', () => {
+			resolve(ssh_connection);
+		})
+	});
 }
 
 
-module.exports = {ssh_connection, sftp_connection, ssh_exec};
+/*
+*	sftp_connection_promise()
+* 		return a sFTP connection promise
+*/
+function sftp_connection_promise() {
+	return new Promise( (resolve, reject) => {
+		ssh_connection_promise()
+		.then( ssh_connection => {
+			ssh_connection.sftp( (err, sftp_connection) => {
+				if(err) { ssh_connection.end(); return reject(`sftp_connection_promise::${err}`); }
+
+				// return connections object
+				return resolve({
+					sftp_connection,
+					ssh_connection
+				});
+
+			});
+		})
+		.catch( err => { return reject(`sftp_connection_promise::${err}`) });
+	});
+}
+
+
+
+module.exports = {ssh_connection_promise, sftp_connection_promise};
