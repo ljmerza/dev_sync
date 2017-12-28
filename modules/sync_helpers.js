@@ -37,8 +37,8 @@ async function sync_files(all_files_data) {
 			connection = await connections_object.sftp_connection_promise();
 			
 			// for each file -> sync it
-			all_files_data_formatted.forEach( async file => {
-				synced_files_promises.push(await sync_file(connection, file));
+			await async_for_each(all_files_data_formatted, file => {
+				synced_files_promises.push(sync_file(connection, file));
 			});
 
 			// once all files synced close connections and reset file permissions
@@ -97,30 +97,32 @@ async function delete_remote(remote_path){
 */
 async function sync_file(connection, file_data) {
 	return new Promise( async (resolve, reject) => {
-		
-		// try to syn a file
-		try {
-			await connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path);
 
-			number_files_uploaded++;
-			gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
-			gauge.pulse(file_data.remote_path);
+		connection.sftp_connection.fastPut(`..\\${file_data.local_path}`, file_data.remote_path, err => {
+			if(err) {
+				// if error is it doesn't exist locally then it's a delete
+				if(err.code == 'ENOENT'){
+					delete_remote(file_data.remote_path)
+					.then( () => {
+						number_files_uploaded++;
+						gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
+						gauge.pulse(file_data.remote_path);
+						return resolve(file_data.remote_path); 
+					})
+					.catch( err => { return reject(`sync_file::${err}`); });
 
-			return resolve(file_data.remote_path);
-
-		} catch(err){
-
-			// if local file doesn't exist then try to delete remote file
-			if(err.code == 'ENOENT'){
-				try {
-					await delete_remote(file_data.remote_path);
-				} catch(err){
+				} else {
+					// else something actually went wrong so reject
 					return reject(`sync_file::${err}`); 
 				}
+
 			} else {
-				return reject(`sync_file::${err}`); 
+				number_files_uploaded++;
+				gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
+				gauge.pulse(file_data.remote_path);
+				return resolve(file_data.remote_path);
 			}
-		}
+		});
 	});
 }
 
