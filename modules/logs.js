@@ -11,14 +11,15 @@ const sync_helpers = require("./sync_helpers");
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
 	['logs', 'm5_log.log','logs/m5.log'],
-	// ['logs', 'error_log', 'logs/error.log'],
-	// ['logs', 'better_error_log', 'logs/better_error_log'],
-	// ['www/UD_api/log', 'production.log', 'logs/UD_api.log'],
-	// ['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'],
-	// ['www/wam_api/log', 'production.log', 'logs/WAM_api.log'],
-	// ['www/aqe_api/log', 'production.log', 'logs/AQE_api.log'],
-	// ['www/upm_api/log', 'production.log', 'logs/UPM_api.log'],
-	// ['www/utm_api/log', 'production.log', 'logs/UTM_api.log']
+	['logs', 'error_log', 'logs/error.log'],
+	['logs', 'better_error_log', 'logs/better_error_log.log'],
+	['logs', 'access_log', 'logs/access_log.log'],
+	['www/UD_api/log', 'production.log', 'logs/UD_api.log'],
+	['www/teamdbapi/logs', 'error.log', 'logs/teamdbapi.log'],
+	['www/wam_api/log', 'production.log', 'logs/WAM_api.log'],
+	['www/aqe_api/log', 'production.log', 'logs/AQE_api.log'],
+	['www/upm_api/log', 'production.log', 'logs/UPM_api.log'],
+	['www/utm_api/log', 'production.log', 'logs/UTM_api.log']
 ];
 
 
@@ -68,8 +69,6 @@ async function _sync_a_log(file, connections) {
 		let read_stream_remote;
 
 		try {
-
-
 			// create remote file if doesn't exist
 			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
 			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
@@ -93,6 +92,9 @@ async function _sync_a_log(file, connections) {
 				if(!equal){
 					sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
 						if(err) { return reject(`_sync_a_log::${err}`); }
+
+						// log that we just synced and resolve promise
+						console.log(`updated local log file ${local_file_name}`);
 						return resolve(`updated local log file ${local_file_name}`);
 					});
 				} else {
@@ -111,34 +113,38 @@ async function _sync_a_log(file, connections) {
 *	function syncLogsInterval()
 * 		download log files periodically
 */
-(async function syncLogsInterval() {
+(async function sync_logs_interval() {
 	let syncing_done = true;
 
 	setInterval( async () => {
 
-		// if last syncing is done then sync again else do nothing
-		if(syncing_done){
+		try {
+			// if last syncing is done then sync again else do nothing
+			if(syncing_done){
 
-			// don't allow any other syncing going on
-			syncing_done = false;
-			let connections; 
+				// don't allow any other syncing going on
+				syncing_done = false;
+				let connections; 
 
-			// try to sync all logs
-			try {
-				connections = await connection_object.sftp_connection_promise();
-				const messages = await _sync_logs(connections);
-				console.log('messages1: ', messages);
-			} catch(err){
-				console.log('err: ', err);
-				console.log(`syncLogsInterval::${err}`)
+				// try to sync all logs
+				try {
+					connections = await connection_object.sftp_connection_promise();
+					const messages = await _sync_logs(connections);
+				} catch(err){
+					console.log(`syncLogsInterval::${err}`)
+				}
+
+				syncing_done = true;
+				connections.ssh_connection.end();
+				connections.sftp_connection.end();
 			}
-
+		} catch(err){
+			// always reset sync logs and display message
 			syncing_done = true;
-			connections.ssh_connection.end();
-			connections.sftp_connection.end();
+			console.log('sync_logs_interval::', err);
 		}
-		
-	}, 2000);
+
+	}, 1000);
 })();
 
 /*
@@ -150,8 +156,6 @@ async function reset_logs() {
 	// combine all log file paths into a command
 	const command = log_files.map(log_file => `${log_file[0]}/${log_file[1]}`)
 	.reduce( (command, dir) => `${command} cat /dev/null > ${config.remote_base}/${dir};`, '');
-
-	console.log('command: ', command);
 	
 	console.log('resetting logs...');
 
@@ -159,7 +163,7 @@ async function reset_logs() {
 	return new Promise(async (resolve, reject) => {
 		try {
 			await remote_commands.execute_remote_command(command);
-			return resolve();
+			return resolve('logs reset');
 		} catch(err){
 			return reject(`reset_logs::${err}`);
 		}

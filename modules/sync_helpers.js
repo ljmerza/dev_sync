@@ -21,8 +21,6 @@ async function sync_files(all_files_data) {
 	// create new loading screen
 	gauge = new Gauge();
 
-	console.log('all_files_data: ', all_files_data);
-
 	// make sure all file paths are correct format for Windows/UNIX
 	const all_files_data_formatted = formatting.format_files(all_files_data);
 	let synced_files_promises = [];
@@ -46,8 +44,6 @@ async function sync_files(all_files_data) {
 			// once all files synced close connections and reset file permissions
 			await Promise.all(synced_files_promises)
 			.then(async files => {
-
-				console.log('files: ', files);
 
 				// hide loading screen
 				gauge.hide();
@@ -101,15 +97,15 @@ async function delete_remote(remote_path){
 */
 async function sync_file(connection, file_data) {
 	return new Promise( async (resolve, reject) => {
-
-		console.log('file_data: ', file_data);
 		
 		// try to syn a file
 		try {
-			await connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path)
+			await connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path);
+
 			number_files_uploaded++;
 			gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
 			gauge.pulse(file_data.remote_path);
+
 			return resolve(file_data.remote_path);
 
 		} catch(err){
@@ -145,14 +141,13 @@ async function transfer_repo(local_path, remote_path, repo) {
 			if(err) { return reject(`transfer_repo::recursive::err: ${err}`); }
 		  
 			// format local/remote file paths
-			const files_to_upload = files.map( async file => {
+			const files_to_upload = files.map(file => {
 
 				// create local/remote file absolute paths
 				let file_remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
 				let file_local_path = `${local_path}\\${file_remote_path}`
 				file_remote_path = `${remote_path}/${file_remote_path}`;
 				let base_path = path.dirname(file_remote_path);
-
 				return {remote_path:file_remote_path, local_path:file_local_path, base_path, repo};
 			});
 

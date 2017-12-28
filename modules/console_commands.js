@@ -14,7 +14,7 @@ keypress(process.stdin);
 let collected_keys = '';
 
 // listen for the "keypress" event
-process.stdin.on('keypress', function (ch, key) {
+process.stdin.on('keypress', async function (ch, key) {
 
   // kill process if send SIGTERM
   if (key && key.ctrl && key.name == 'c') {
@@ -161,7 +161,8 @@ process.stdin.on('keypress', function (ch, key) {
     // reset logs
 
     } else if ( key_presses === 'logs' ) {
-      logs.reset_logs();
+      const message = await logs.reset_logs();
+      console.log(message);
 
     // else show help
     } else {
