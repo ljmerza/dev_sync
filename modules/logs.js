@@ -35,7 +35,6 @@ async function _sync_logs(connections) {
 		await sync_helpers.async_for_each(log_files, async log_file => {
 			try {
 				let message = await _sync_a_log(log_file, connections);
-				console.log('message: ', message);
 				sync_results.push(message);
 			} catch(err){
 				return reject(`_sync_logs::${err}`);
@@ -89,21 +88,13 @@ async function _sync_a_log(file, connections) {
 			// compare files to see if we need to sync them
 			streamEqual(read_stream_local, read_stream_remote, async (err, equal) => {
 				if(err) { return reject(`_sync_a_log::${err}`); }
-
-				console.log('equal: ', equal);
 				
 				// if not equal then get remote file and sync to local
 				if(!equal){
-
-					// try to sync log file
-					try {
-						console.log('::', `${config.remote_base}/${relative_file_path}/${remote_file_name}`);
-						console.log('local_file_name: ', local_file_name);
-					 	await sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name);
-					} catch(err){
-						return reject(`_sync_a_log::${err}`)
-					}
-					return resolve(`updated local log file ${local_file_name}`);
+					sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
+						if(err) { return reject(`_sync_a_log::${err}`); }
+						return resolve(`updated local log file ${local_file_name}`);
+					});
 				} else {
 					return resolve(`local log file ${local_file_name} already synced`);
 				}
