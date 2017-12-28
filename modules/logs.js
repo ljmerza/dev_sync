@@ -1,10 +1,12 @@
 const Promise = require("bluebird");
 const fs = require('fs');
 const streamEqual = require('stream-equal');
+const exec = require('node-exec-promise').exec;
 
 const config = require('./../config');
-const sftp_connection_promise = require("./connections");
+const connection_object = require("./connections");
 const remote_commands = require('./remote_commands');
+const sync_helpers = require("./sync_helpers");
 
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
@@ -30,21 +32,21 @@ async function _sync_logs(connections) {
 		let sync_results = [];
 
 		// check for files syncs
-		log_files.forEach(async log_file => {
+		await sync_helpers.async_for_each(log_files, async log_file => {
 			try {
 				let message = await _sync_a_log(log_file, connections);
 				console.log('message: ', message);
 				sync_results.push(message);
 			} catch(err){
-				reject(`_sync_logs::${err}`);
+				return reject(`_sync_logs::${err}`);
 			}
 		});
-
-		console.log('sync_results: ', sync_results);
 
 		return resolve(sync_results);
 	});
 }
+
+
 
 
 /*
@@ -73,9 +75,8 @@ async function _sync_a_log(file, connections) {
 			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
 			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 
-			console.log('test: ', relative_file_path);
 			// create local file if doesnt exist
-			await remote_commands.execute_command(`touch ../${local_file_name}`);
+			await exec(`touch ${local_file_name}`);
 
 			// try to create read/write streams for local/remote files
 			try {
@@ -88,13 +89,17 @@ async function _sync_a_log(file, connections) {
 			// compare files to see if we need to sync them
 			streamEqual(read_stream_local, read_stream_remote, async (err, equal) => {
 				if(err) { return reject(`_sync_a_log::${err}`); }
+
+				console.log('equal: ', equal);
 				
 				// if not equal then get remote file and sync to local
 				if(!equal){
 
 					// try to sync log file
 					try {
-					 	await sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name)
+						console.log('::', `${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+						console.log('local_file_name: ', local_file_name);
+					 	await sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name);
 					} catch(err){
 						return reject(`_sync_a_log::${err}`)
 					}
@@ -125,15 +130,15 @@ async function _sync_a_log(file, connections) {
 
 			// don't allow any other syncing going on
 			syncing_done = false;
-
-			// create ssh connection
-			const connections = await sftp_connection_promise()
+			let connections; 
 
 			// try to sync all logs
 			try {
+				connections = await connection_object.sftp_connection_promise();
 				const messages = await _sync_logs(connections);
-				console.log('messages: ', messages);
+				console.log('messages1: ', messages);
 			} catch(err){
+				console.log('err: ', err);
 				console.log(`syncLogsInterval::${err}`)
 			}
 

@@ -168,4 +168,10 @@ async function transfer_repo(local_path, remote_path, repo) {
 	});	
 }
 
-module.exports = {sync_files, transfer_repo};
+async function async_for_each(array, callback) {
+	for (let index = 0; index < array.length; index++) {
+		await callback(array[index], index, array)
+	}
+}
+
+module.exports = {sync_files, transfer_repo, async_for_each};

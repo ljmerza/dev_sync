@@ -90,41 +90,39 @@ function update_permissions(uploaded_files) {
 * 		exec a bash command remotely
 */
 async function execute_remote_command(command) {
-	return new Promise( async (resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		// connect to server
-
-		let ssh_connection;
+		let connection;
 		try {
 			ssh_connection = await connections_object.ssh_connection_promise();
-		} catch(err){
+
+			// once uploaded array is empty then execute command to reset permissions
+			ssh_connection.exec(command, (err, stream) => {
+				if(err){ 
+					ssh_connection.end(); 
+					return reject(`execute_remote_command::${err}`); 
+				}
+
+				// on data or error event -> format then log stdout from server
+				stream.on('data', data => {
+					data = formatting.formatServerStdOut(data);
+					if(command == 'hostname') console.log('\nConnected with:', data);
+					else console.log(data);
+				}).stderr.on('data', error => {
+					data = formatting.formatServerStdOut(error).trim();
+					// dont show certain errors
+					if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
+						console.log(data);
+					}
+      			})
+				.on('close', () => { 
+					ssh_connection.end(); 
+					return resolve(); 
+				});
+			});
+		} catch(err) {
 			return reject(`execute_remote_command::${err}`);
 		}
-
-		try {
-			console.log('command: ', command);
-			let data = await ssh_connection.exec(command);
-			console.log('command: ', command);
-
-
-			// display exec results
-			data = formatting.formatServerStdOut(data);
-			if(command == 'hostname') console.log('\nConnected with:', data);
-			else console.log(data);
-
-			console.log('ssh_connection: ', ssh_connection);
-
-			ssh_connection.end(); 
-			return resolve();
-
-		} catch(err){
-			// on erro close ssh and return err rejection
-			ssh_connection.end(); 
-			return reject(`execute_remote_command::${err}`); 
-		}
-
-		// if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
-		// 			console.log(data);
-		// 		}
 	});
 }
 
