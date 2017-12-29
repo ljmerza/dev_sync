@@ -142,7 +142,7 @@ function syncLogsInterval() {
 }
 
 // start syncing logs
-syncLogsInterval();
+// syncLogsInterval();
 
 
 

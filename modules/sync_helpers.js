@@ -84,6 +84,7 @@ function delete_remote(remote_path){
 * 		syncs a file to server
 */
 function sync_file(connection, file_data) {
+	console.log('file_data: ', file_data);
 	return new Promise( (resolve, reject) => {
 		// create remote folder path if does not exist
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, err => {
@@ -103,7 +104,6 @@ function sync_file(connection, file_data) {
 					// else something actually went wrong so reject
 					return reject(`sync_file::${err}`); 
 				}
-
 			} else {
 				number_files_uploaded++;
 				gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
