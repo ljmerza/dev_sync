@@ -98,11 +98,7 @@ async function delete_remote(remote_path){
 async function sync_file(connection, file_data) {
 	console.log('file_data: ', file_data);
 	return new Promise(async (resolve, reject) => {
-
-		
-
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
-			console.log('err: ', err);
 			if(err) {
 				// if error is it doesn't exist locally then it's a delete
 				if(err.code == 'ENOENT'){
@@ -116,6 +112,7 @@ async function sync_file(connection, file_data) {
 						return reject(`sync_file::${err}`);
 					}
 				} else {
+					console.log('err: ', file_data);
 					// else something actually went wrong so reject
 					return reject(`sync_file::${err}`); 
 				}
