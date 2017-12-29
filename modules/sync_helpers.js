@@ -34,14 +34,11 @@ async function sync_objects(all_files_data) {
 		let connection;
 		try {
 			connection = await connections_object.sftp_connection_promise();
-			// console.log('connection: ', connection);
 			
 			// for each file -> sync it
-			await async_for_each(all_files_data_formatted, file => {
-				synced_files_promises.push(sync_object(connection, file));
+			await async_for_each(all_files_data_formatted, async file => {
+				synced_files_promises.push(await sync_object(connection, file));
 			});
-
-			console.log('test');
 
 			// once all files synced close connections and reset file permissions
 			await Promise.all(synced_files_promises)
@@ -126,9 +123,16 @@ async function sync_object(connection, object_data) {
 * 		syncs a file to server
 */
 async function sync_file(connection, file_data){
+	// console.log('file_data: ', file_data);
+
+	// if we are syncing repo make folder first
+	if(file_data.sync_repo){
+		await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
+	}
+
 	return new Promise(async (resolve, reject) => {
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
-			if(err) return reject(`sync_file::${err}`);
+			if(err) return resolve(`sync_file::${err}`);
 			return resolve(file_data.remote_path);
 		});
 	});
@@ -159,16 +163,26 @@ async function transfer_repo(local_path, remote_path, repo) {
 		// get all file path in local folder given
 		recursive(local_path, async (err, files) => {
 			if(err) { return reject(`transfer_repo::recursive::err: ${err}`); }
+
+
 		  
 			// format local/remote file paths
 			const files_to_upload = files.map(file => {
 
 				// create local/remote file absolute paths
 				let file_remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
-				let file_local_path = `${local_path}\\${file_remote_path}`
+				let file_local_path =  path.join(__dirname, '..',`${local_path}\\${file_remote_path}`).replace(/\\/g,"/");
 				file_remote_path = `${remote_path}/${file_remote_path}`;
-				let base_path = path.dirname(file_remote_path);
-				return {remote_path:file_remote_path, local_path:file_local_path, base_path, repo};
+				let base_path = path.dirname(file_remote_path);			
+
+				return {
+					remote_path:file_remote_path, 
+					local_path:file_local_path, 
+					base_path, 
+					repo, 
+					action: 'change', 
+					sync_repo:true
+				};
 			});
 
 			// delete remote repo first then sync files

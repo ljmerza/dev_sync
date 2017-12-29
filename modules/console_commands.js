@@ -181,7 +181,7 @@ example 'cmd ls' without quotes will return the dir list
 			if(message) console.log(message);
 
 		} catch(err){
-			console.log('console_commands::', err);
+			console.log(`console_commands::${err}`);
 		}
 	}
 });

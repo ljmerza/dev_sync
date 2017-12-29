@@ -78,13 +78,10 @@ module.exports.format_paths = function(changed_file) {
 */
 module.exports.format_files = function(all_files_data) {
 	return all_files_data.map( file => {
-		return {
-			remote_path: file.remote_path.replace(/\\/g, '/'),
-			local_path: file.local_path.replace(/\//g, '\\'),
-			base_path: file.base_path.replace(/\\/g, '/'),
-			repo: file.repo,
-			action: file.action
-		};
+		file.remote_path = file.remote_path.replace(/\\/g, '/');
+		file.local_path = file.local_path.replace(/\//g, '\\');
+		file.base_path = file.base_path.replace(/\\/g, '/');
+		return file;
 	});
 }
 

@@ -59,7 +59,7 @@ Object.keys(config.local_paths)
 	})
 
 	// create a default timeout to clear
-	let current_timer = setTimeout(() => {},0);
+	let current_timer = setTimeout(()=>{},0);
 
 	function sync_files_timer() {
 		// clear last timeout and start a new one
@@ -94,13 +94,10 @@ async function sftp_upload() {
 			return {local_path, remote_path, base_path, repo:file.repo, action:file.action};
 		});
 
-		// console.log('modified_upload_files: ', modified_upload_files);
-
 		try {
-			const files = await sync_helpers.sync_objects(modified_upload_files);
+			const file_objects = await sync_helpers.sync_objects(modified_upload_files);
 			// then log files synced
-			if(files.length) console.log('files synced: ');
-			files.forEach( file => console.log('	', file) )
+			if(file_objects.length > 0) console.log(`${file_objects.length} objects synced`);
 		} catch(err){
 			return reject(`sftp_upload::${err}`);
 		}
