@@ -92,15 +92,15 @@ function update_permissions(uploaded_files) {
 async function execute_remote_command(command) {
 	return new Promise(async (resolve, reject) => {
 		// connect to server
-		let connection;
+		let ssh_connection;
 		try {
 			ssh_connection = await connections_object.ssh_connection_promise();
 
 			// once uploaded array is empty then execute command to reset permissions
 			ssh_connection.exec(command, (err, stream) => {
 				if(err){ 
-					ssh_connection.end(); 
-					return reject(`execute_remote_command::${err}`); 
+					if(ssh_connection) ssh_connection.end();
+					return reject(`execute_remote_dcommand::${err}`); 
 				}
 
 				// on data or error event -> format then log stdout from server
@@ -116,11 +116,12 @@ async function execute_remote_command(command) {
 					}
       			})
 				.on('close', () => { 
-					ssh_connection.end(); 
+					if(ssh_connection) ssh_connection.end();
 					return resolve(); 
 				});
 			});
 		} catch(err) {
+			if(ssh_connection) ssh_connection.end();
 			return reject(`execute_remote_command::${err}`);
 		}
 	});

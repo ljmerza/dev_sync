@@ -1,3 +1,5 @@
+'use strict';
+
 const watch = require('watch');
 const path = require('path');
 const fs = require('fs');

@@ -96,21 +96,25 @@ async function delete_remote(remote_path){
 * 		syncs a file to server
 */
 async function sync_file(connection, file_data) {
-	return new Promise( async (resolve, reject) => {
+	console.log('file_data: ', file_data);
+	return new Promise(async (resolve, reject) => {
 
-		connection.sftp_connection.fastPut(`..\\${file_data.local_path}`, file_data.remote_path, err => {
+		
+
+		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
+			console.log('err: ', err);
 			if(err) {
 				// if error is it doesn't exist locally then it's a delete
 				if(err.code == 'ENOENT'){
-					delete_remote(file_data.remote_path)
-					.then( () => {
+					try {
+						await delete_remote(file_data.remote_path);
 						number_files_uploaded++;
 						gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
 						gauge.pulse(file_data.remote_path);
 						return resolve(file_data.remote_path); 
-					})
-					.catch( err => { return reject(`sync_file::${err}`); });
-
+					}catch(err){
+						return reject(`sync_file::${err}`);
+					}
 				} else {
 					// else something actually went wrong so reject
 					return reject(`sync_file::${err}`); 
