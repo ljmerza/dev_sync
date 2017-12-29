@@ -1,4 +1,8 @@
 const config = require('./../config');
+const path = require('path');
+
+// what is the folder depth of the base path to all watched files?
+const base_path_depth = path.join(__dirname, '../..').split('\\').length-1;
 
 /******************************************************************
 *	format_remote_path(local_path, slice_number, repo)
@@ -12,9 +16,10 @@ function format_remote_path(local_path, slice_number, repo) {
 	} else if(local_path.match(/\\ud\\/)){
 		local_path = local_path.replace('\\ud\\', '\\UD\\');
 	}
+	
 
 	// get remote path from local path
-	const remote_path = local_path.split('\\').slice(slice_number).join('/');
+	const remote_path = local_path.split('\\').slice(slice_number+base_path_depth).join('/');
 
 	// return full remote path based on repo type
 	if(repo.match(/cron/)){
@@ -75,10 +80,10 @@ module.exports.format_files = function(all_files_data) {
 	return all_files_data.map( file => {
 		return {
 			remote_path: file.remote_path.replace(/\\/g, '/'),
-			local_path: file.local_path.replace(/\/|\\/g, '\\'),
+			local_path: file.local_path.replace(/\//g, '\\'),
 			base_path: file.base_path.replace(/\\/g, '/'),
 			repo: file.repo,
-			dir: file.dir
+			action: file.action
 		};
 	});
 }

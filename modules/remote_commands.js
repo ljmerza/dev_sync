@@ -7,49 +7,63 @@ const Promise = require("bluebird");
 execute_remote_command('hostname');
 
 /*
-*	function mkdirs(all_dirs)
-* 		makes directory paths if they dont exist for all file paths
+*	function make_remote_directory(base_path, connection)
+* 		makes directory folder for a given path
 */
-async function mkdirs(all_dirs) {
-
-	// get all base paths and format them for *nix
-	const base_paths = all_dirs.map( file => file.base_path.replace(/\\/g, '/') );
-
-	// get all directories to log them once created
-	const dirs = all_dirs.filter(file => file.dir);
-
-	// get all unique directories and create command to send
-	const command = [...new Set(base_paths)]
-	.reduce( (command, dir) => `${command}mkdir -p ${dir};`, '' );
-
+async function make_remote_directory(base_path, connection) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(command)
-			// log any directories created and return resolved promise
-			if(dirs.length > 0){
-				console.log('directories created: ');
-				dirs.forEach( dir => console.log(`	${dir.remote_path}`) );
-			}
+			await execute_remote_command(`mkdir -p ${base_path}`, connection);
+			console.log(`directory created: ${base_path}`);
 		}catch(err){
-			return reject(`mkdirs::${err}`);
+			return reject(`make_directory::${err}`);
 		}
-		
 		return resolve(); 
-
-	});
+	});	
 }
 
+/*
+*	function delete_remote_directory(base_path, connection)
+* 		deletes directory folder for a given path
+*/
+async function delete_remote_directory(base_path, connection){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await execute_remote_command(`rm -rd ${base_path}`, connection);
+			console.log(`directory deleted: ${base_path}`);
+		}catch(err){
+			return reject(`delete_directory::${err}`);
+		}
+		return resolve(); 
+	});	
+}
 
 /*
-*	delete_remote_repo(repo_path)
+*	function delete_remote_file(remote_path, connection)
+* 		deletes file for a given path
+*/
+async function delete_remote_file(remote_path, connection){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await execute_remote_command(`rm ${remote_path}`, connection);
+			console.log(`file deleted: ${base_path}`);
+		}catch(err){
+			return reject(`delete_file::${err}`);
+		}
+		return resolve(); 
+	});	
+}
+
+/*
+*	delete_remote_repo(repo_path, connection)
 * 		deletes a repo's remote folder
 */
-async function delete_remote_repo(repo_path) {
+async function delete_remote_repo(repo_path, connection) {
 	console.log('deleting remote repo folder...');
 
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm -rd ${repo_path}`);
+			await execute_remote_command(`rm -rd ${repo_path}`, connection);
 			return resolve();
 		} catch(err){
 			return reject(`delete_remote_repo::${err}`)
@@ -81,21 +95,22 @@ function update_permissions(uploaded_files) {
 
 
 /*
-*	function execute_remote_command(command)
+*	function execute_remote_command(command, ssh_connection)
 * 		exec a bash command remotely
 */
-async function execute_remote_command(command) {
+async function execute_remote_command(command, ssh_connection) {
 	return new Promise(async (resolve, reject) => {
-		// connect to server
-		let ssh_connection;
 		try {
-			ssh_connection = await connections_object.ssh_connection_promise();
+			// if SSH connection wasn't passed then get one
+			if(!ssh_connection){
+				ssh_connection = await connections_object.ssh_connection_promise();
+			}
 
 			// once uploaded array is empty then execute command to reset permissions
 			ssh_connection.exec(command, (err, stream) => {
 				if(err){ 
 					if(ssh_connection) ssh_connection.end();
-					return reject(`execute_remote_dcommand::${err}`); 
+					return reject(`execute_remote_command::${err}`); 
 				}
 
 				// on data or error event -> format then log stdout from server
@@ -165,5 +180,7 @@ module.exports = {
 	execute_remote_command,
 	update_permissions,
 	delete_remote_repo,
-	mkdirs
+	delete_remote_file,
+	delete_remote_directory,
+	make_remote_directory
 };

@@ -13,10 +13,10 @@ let number_files_uploaded = 0;
 let gauge;
 
 /*
-*	function sync_files(all_files_data)
+*	function sync_objects(all_files_data)
 * 		syncs all files to server
 */
-async function sync_files(all_files_data) {
+async function sync_objects(all_files_data) {
 
 	// create new loading screen
 	gauge = new Gauge();
@@ -33,13 +33,15 @@ async function sync_files(all_files_data) {
 
 		let connection;
 		try {
-			await remote_commands.mkdirs(all_files_data_formatted);
 			connection = await connections_object.sftp_connection_promise();
+			// console.log('connection: ', connection);
 			
 			// for each file -> sync it
 			await async_for_each(all_files_data_formatted, file => {
-				synced_files_promises.push(sync_file(connection, file));
+				synced_files_promises.push(sync_object(connection, file));
 			});
+
+			console.log('test');
 
 			// once all files synced close connections and reset file permissions
 			await Promise.all(synced_files_promises)
@@ -59,7 +61,7 @@ async function sync_files(all_files_data) {
 					return resolve(files);
 				} catch(err){
 					gauge.hide()
-					return reject(`sync_files::${err}`);
+					return reject(`sync_objects::${err}`);
 				}	
 			});
 		} catch(err){
@@ -70,7 +72,7 @@ async function sync_files(all_files_data) {
 
 			// hide gauge and return error
 			gauge.hide();
-			return reject(`sync_files::${err}`); 
+			return reject(`sync_objects::${err}`); 
 		}
 	});
 }
@@ -92,43 +94,54 @@ async function delete_remote(remote_path){
 
 
 /*
+*	function sync_object(connection, object_data)
+* 		syncs an object to the server
+*/
+async function sync_object(connection, object_data) {
+	// console.log('object_data: ', object_data);
+	let returned_promise;
+
+	switch(object_data.action){
+		case 'change':
+			returned_promise = await sync_file(connection, object_data);
+			break;
+		case 'unlink':
+			returned_promise = await remote_commands.delete_remote_file(object_data.remote_path, connection.ssh_connection);
+			break;
+		case 'addDir':
+			returned_promise = await remote_commands.make_remote_directory(object_data.base_path, connection.ssh_connection);
+			break;
+		case 'unlinkDir':
+			returned_promise = await remote_commands.delete_remote_directory(object_data.base_path, connection.ssh_connection);
+			break;
+	}
+
+	// update loading screen and return promise
+	_update_pulse(object_data);
+	return returned_promise;
+}
+
+/*
 *	function sync_file(connection, file_data)
 * 		syncs a file to server
 */
-async function sync_file(connection, file_data) {
+async function sync_file(connection, file_data){
 	return new Promise(async (resolve, reject) => {
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
-			if(err) {
-				// if error is it doesn't exist locally then it's a delete
-				if(err.code == 'ENOENT'){
-					try {
-						await delete_remote(file_data.remote_path);
-						_update_pulse(file_data);
-						return resolve(file_data.remote_path); 
-					}catch(err){
-						return reject(`sync_file::${err}`);
-					}
-				} else {
-					// else something actually went wrong so reject
-					return reject(`sync_file::${err}`); 
-				}
-
-			} else {
-				_update_pulse(file_data);
-				return resolve(file_data.remote_path);
-			}
+			if(err) return reject(`sync_file::${err}`);
+			return resolve(file_data.remote_path);
 		});
 	});
 }
 
 /*
-*	_update_pulse(file_data)
+*	_update_pulse(object_data)
 *		updates pulse animation
 */
-function _update_pulse(file_data) {
+function _update_pulse(object_data) {
 	number_files_uploaded++;
-	gauge.show(`uploaded ${file_data.local_path}`, number_files_uploaded/number_of_files);
-	gauge.pulse(file_data.remote_path);
+	gauge.show(`${object_data.action} ${object_data.local_path}`, number_files_uploaded/number_of_files);
+	gauge.pulse(object_data.remote_path);
 }
 
 
@@ -160,8 +173,8 @@ async function transfer_repo(local_path, remote_path, repo) {
 
 			// delete remote repo first then sync files
 			try {
-				await remote_commands.delete_remote_repo(remote_path);
-				await sync_files(files_to_upload);
+				await remote_commands.delete_remote_directory(remote_path);
+				await sync_objects(files_to_upload);
 				return resolve(`Uploaded ${files_to_upload.length} files for ${repo}`);
 			} catch(err){
 				return reject(`transfer_repo::${err}`);
@@ -170,10 +183,12 @@ async function transfer_repo(local_path, remote_path, repo) {
 	});	
 }
 
+/*
+*/
 async function async_for_each(array, callback) {
 	for (let index = 0; index < array.length; index++) {
 		await callback(array[index], index, array)
 	}
 }
 
-module.exports = {sync_files, transfer_repo, async_for_each};
+module.exports = {sync_objects, transfer_repo, async_for_each};

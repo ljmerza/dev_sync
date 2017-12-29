@@ -78,12 +78,14 @@ function _override_connection(connection){
 	const symbol = Symbol();
 	connection.symbol = symbol;
 	connections.push({symbol, connection});
+	console.log('open connection...');
 
 	// save old end function
 	const end_connection = connection.end;
 
 	// override end function
 	connection.end = function(){
+		console.log('close connection...');
 
 		// call end to connection 
 		end_connection.apply(this);
