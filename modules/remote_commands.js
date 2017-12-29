@@ -18,29 +18,24 @@ async function mkdirs(all_dirs) {
 	// get all directories to log them once created
 	const dirs = all_dirs.filter(file => file.dir);
 
-	// if no dirs then just return here
-	if(dirs.length == 0){
-		return Promise.resolve();
-	}
-
 	// get all unique directories and create command to send
 	const command = [...new Set(base_paths)]
 	.reduce( (command, dir) => `${command}mkdir -p ${dir};`, '' );
 
-	// try to make dirs
-	return new Promise( async (resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(command);
+			await execute_remote_command(command)
 			// log any directories created and return resolved promise
 			if(dirs.length > 0){
 				console.log('directories created: ');
 				dirs.forEach( dir => console.log(`	${dir.remote_path}`) );
 			}
-			return resolve();
-
-		} catch(err){
+		}catch(err){
 			return reject(`mkdirs::${err}`);
 		}
+		
+		return resolve(); 
+
 	});
 }
 

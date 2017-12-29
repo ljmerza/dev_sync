@@ -18,8 +18,16 @@ process.stdin.on('keypress', async function (ch, key) {
 
 	// kill process if send SIGTERM
 	if (key && key.ctrl && key.name == 'c') {
+
+		// get copy of call connections
+		const connections = connections_object.connections.slice();
+
 		// for each connection still open close it
-		connections_object.connections.forEach( conn_object => conn_object.connection.end() );
+		await sync_helpers.async_for_each(connections, conn_object =>{
+			console.log('killing ssh connection...');
+			conn_object.connection.end();
+		});
+		// now we can exit
 		process.exit();
 	}
 
