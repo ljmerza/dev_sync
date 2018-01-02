@@ -47,7 +47,7 @@ async function delete_remote_file(remote_path, connection){
 		}catch(err){
 			return reject(`delete_remote_file::${err}`);
 		}
-		return resolve(base_path); 
+		return resolve(remote_path); 
 	});	
 }
 
@@ -85,7 +85,7 @@ function update_permissions(uploaded_files) {
 			await execute_remote_command(command);
 			return resolve();
 		} catch(err){
-			return reject(`update_permissions::${err}`);
+			return resolve(`update_permissions::${err}`);
 		}
 	});
 }

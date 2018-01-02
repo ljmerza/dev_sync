@@ -24,54 +24,38 @@ Object.keys(config.local_paths)
 .map( repo => { return {dir: `../${config.local_paths[repo]}/`, repo} })
 .forEach( element => {
 
-	var watcher = chokidar.watch(path.join(__dirname, element.dir), {
+	chokidar.watch(path.join(__dirname, element.dir), {
 		ignored: /(^|[\/\\])\../,
-		persistent: true
-	});
-	var log = console.log.bind(console);
-
-	watcher
- //  	.on('add', path => {
- //  		changed_files.push({local_path:path, remote_path: '', repo:element.repo, action: 'add'});
- //  		sync_files_timer();
-	// })
-	.on('change', path => {
-		changed_files.push({local_path:path, remote_path: '', repo:element.repo, action: 'change'});
-		sync_files_timer();
+		persistent: true,
+		ignoreInitial: true,
 	})
-	.on('unlink', path => {
-		changed_files.push({local_path:path, remote_path: '', repo:element.repo, action: 'unlink'});
-		sync_files_timer();
-	})
-	.on('addDir', path => {
-		changed_files.push({local_path:path, remote_path: '', repo:element.repo, action: 'addDir'});
-		sync_files_timer();
-	})
-	.on('unlinkDir', path => {
-		changed_files.push({local_path:path, remote_path: '', repo:element.repo, action: 'unlinkDir'});
-		sync_files_timer();
-	})
-	.on('error', error => {
-		console.log('watcher ERROR: ', error);
-	})
-	.on('ready', () => {
-		console.log('	', element.dir);
-	})
+	.on('add', path => add_to_sync(path, 'add', element.repo))
+	.on('change', path => add_to_sync(path, 'change', element.repo))
+	.on('unlink', path => add_to_sync(path, 'unlink', element.repo))
+	.on('addDir', path => add_to_sync(path, 'addDir', element.repo))
+	.on('unlinkDir', path => add_to_sync(path, 'unlinkDir', element.repo))
+	.on('error', error => console.log('watcher ERROR: ', error))
+	.on('ready', () => console.log('	', element.dir));
 
 	// create a default timeout to clear
 	let current_timer = setTimeout(()=>{},0);
 
-	function sync_files_timer() {
-		// clear last timeout and start a new one
-		clearTimeout(current_timer);
-		current_timer = setTimeout( () => {
-			sftp_upload()
-			.catch( err => console.log(`dev_sync::${err}`) );
-		}, 1000);
+	function add_to_sync(local_path, action, repo){
+		changed_files.push({local_path, repo, action});
+		sync_files_timer();
 	}
-	
-
 });
+
+/**
+*/
+function sync_files_timer() {
+	// clear last timeout and start a new one
+	clearTimeout(current_timer);
+	current_timer = setTimeout( () => {
+		sftp_upload()
+		.catch( err => console.log(`dev_sync::${err}`) );
+	}, 1000);
+}
 
 
 

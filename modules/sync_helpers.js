@@ -37,6 +37,9 @@ async function sync_objects(all_files_data) {
 			
 			// for each file -> sync it
 			await async_for_each(all_files_data_formatted, async file => {
+				// if git file then ignore
+				if(/\.git/.test(file.local_path)) return;
+				
 				synced_files_promises.push(await sync_object(connection, file));
 			});
 
@@ -132,7 +135,7 @@ async function sync_file(connection, file_data){
 
 	return new Promise(async (resolve, reject) => {
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
-			if(err) return resolve(`sync_file::${err}`);
+			if(err) return reject(`sync_file::${err}::${file_data.local_path}`);
 			return resolve(file_data.remote_path);
 		});
 	});
@@ -144,7 +147,7 @@ async function sync_file(connection, file_data){
 */
 function _update_pulse(object_data) {
 	number_files_uploaded++;
-	gauge.show(`${object_data.action} ${object_data.local_path}`, number_files_uploaded/number_of_files);
+	gauge.show(object_data.action, number_files_uploaded/number_of_files);
 	gauge.pulse(object_data.remote_path);
 }
 

@@ -145,7 +145,7 @@ async function _sync_a_log(file, connections) {
 		}
 
 	}, 1000);
-});
+})();
 
 /*
 *	function reset_logs()
