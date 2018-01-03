@@ -74,7 +74,9 @@ async function _sync_a_log(file, connections) {
 			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 
 			// create local file if doesnt exist
-			await exec(`touch ${local_file_name}`);
+			if (!fs.existsSync(local_file_name)) {
+				await exec(`touch ${local_file_name}`);
+			}
 
 			// try to create read/write streams for local/remote files
 			try {

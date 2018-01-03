@@ -17,6 +17,9 @@ require("./modules/console_commands");
 
 let changed_files = []; // array of changed files than need to be uploaded
 
+// create a default timeout to clear
+let current_timer = setTimeout(()=>{},0);
+
 console.log('watching the following directories:');
 
 // format dirs to relative path of this file then create watcher
@@ -37,8 +40,7 @@ Object.keys(config.local_paths)
 	.on('error', error => console.log('watcher ERROR: ', error))
 	.on('ready', () => console.log('	', element.dir));
 
-	// create a default timeout to clear
-	let current_timer = setTimeout(()=>{},0);
+
 
 	function add_to_sync(local_path, action, repo){
 		changed_files.push({local_path, repo, action});
@@ -81,7 +83,13 @@ async function sftp_upload() {
 		try {
 			const file_objects = await sync_helpers.sync_objects(modified_upload_files);
 			// then log files synced
-			if(file_objects.length > 0) console.log(`${file_objects.length} objects synced`);
+			if(file_objects.length > 0) {
+				const multiple = file_objects.length == 1 ? '' : 's';
+				console.log(`${file_objects.length} object${multiple} synced:`);
+				file_objects.forEach(file => {
+					console.log('	', file);
+				})
+			}
 		} catch(err){
 			return reject(`sftp_upload::${err}`);
 		}
