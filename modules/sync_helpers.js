@@ -129,9 +129,9 @@ async function sync_file(connection, file_data){
 	// console.log('file_data: ', file_data);
 
 	// if we are syncing repo make folder first
-	if(file_data.sync_repo){
+	// if(file_data.sync_repo){
 		await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
-	}
+	// }
 
 	return new Promise(async (resolve, reject) => {
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {

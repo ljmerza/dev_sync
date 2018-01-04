@@ -146,7 +146,7 @@ async function _sync_a_log(file, connections) {
 			console.log('sync_logs_interval::', err);
 		}
 
-	}, 1000);
+	}, 200);
 })();
 
 /*
