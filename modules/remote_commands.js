@@ -113,7 +113,7 @@ async function execute_remote_command(command, ssh_connection) {
 			ssh_connection.exec(command, (err, stream) => {
 				if(err){
 					if(ssh_connection && close_connection) ssh_connection.end();
-					return reject(`execute_remote_command::exec::${err}`); 
+					return reject(`execute_remote_command::exec::${err}::${command}`); 
 				}
 
 				// on data or error event -> format then log stdout from server

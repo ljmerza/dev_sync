@@ -34,14 +34,14 @@ async function sync_objects(all_files_data) {
 		let connection;
 		try {
 			connection = await connections_object.sftp_connection_promise();
-			
-			// for each file -> sync it
+
+			// sync files
 			await async_for_each(all_files_data_formatted, async file => {
 				// if git file then ignore
 				if(/\.git/.test(file.local_path)) return;
 				
 				synced_files_promises.push(await sync_object(connection, file));
-			});
+			});	
 
 			// once all files synced close connections and reset file permissions
 			await Promise.all(synced_files_promises)
@@ -98,7 +98,6 @@ async function delete_remote(remote_path){
 * 		syncs an object to the server
 */
 async function sync_object(connection, object_data) {
-	// console.log('object_data: ', object_data);
 	let returned_promise;
 
 	switch(object_data.action){
@@ -129,9 +128,7 @@ async function sync_file(connection, file_data){
 	// console.log('file_data: ', file_data);
 
 	// if we are syncing repo make folder first
-	// if(file_data.sync_repo){
-		await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
-	// }
+	await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
 
 	return new Promise(async (resolve, reject) => {
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
@@ -167,32 +164,19 @@ async function transfer_repo(local_path, remote_path, repo) {
 		recursive(local_path, async (err, files) => {
 			if(err) { return reject(`transfer_repo::recursive::err: ${err}`); }
 
-
-		  
-			// format local/remote file paths
-			const files_to_upload = files.map(file => {
-
-				// create local/remote file absolute paths
-				let file_remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
-				let file_local_path =  path.join(__dirname, '..',`${local_path}\\${file_remote_path}`).replace(/\\/g,"/");
-				file_remote_path = `${remote_path}/${file_remote_path}`;
-				let base_path = path.dirname(file_remote_path);			
-
-				return {
-					remote_path:file_remote_path, 
-					local_path:file_local_path, 
-					base_path, 
-					repo, 
-					action: 'change', 
-					sync_repo:true
-				};
-			});
-
-			// delete remote repo first then sync files
 			try {
+				// format local/remote file paths
+				const files_to_upload = formatting.transferRepoFormatPaths({
+					files, local_path_folders, local_path, remote_path, repo
+				});
+
+				// delete remote repo first then sync files
 				await remote_commands.delete_remote_directory(remote_path);
-				await sync_objects(files_to_upload);
-				return resolve(`Uploaded ${files_to_upload.length} files for ${repo}`);
+				const syncedFiles = await sync_objects(files_to_upload);
+				syncedFiles.forEach(file => {
+					console.log(`	${file}`);
+				})
+				return resolve(`Uploaded ${syncedFiles.length} files for ${repo}`);
 			} catch(err){
 				return reject(`transfer_repo::${err}`);
 			}

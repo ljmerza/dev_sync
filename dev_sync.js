@@ -9,9 +9,9 @@ const chokidar = require('chokidar');
 const connections_object = require("./modules/connections");
 const formatting = require("./modules/formatting");
 const sync_helpers = require("./modules/sync_helpers");
+const logs = require("./modules/logs");
 const config = require('./config');
 
-require("./modules/logs");
 require("./modules/console_commands");
 
 
@@ -47,6 +47,9 @@ Object.keys(config.local_paths)
 		sync_files_timer();
 	}
 });
+
+// start log sync
+logs.sync_logs_interval();
 
 /**
 */

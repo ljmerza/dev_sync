@@ -55,17 +55,18 @@ module.exports.format_paths = function(changed_file) {
 	let local_path = changed_file.local_path;
 	let remote_path;
 
-	// create remote path
-	if('ud' === repo) remote_path = format_remote_path(local_path, 4, repo);
-	else if('wam_cron' === repo) remote_path = format_remote_path(local_path, 5, repo);
-	else if('aqe_cron' === repo) remote_path = format_remote_path(local_path, 3, repo);
-	else if(['modules', 'external_modules', 'dev_scripts'].includes(repo)) remote_path = format_remote_path(local_path, 2, repo);
-	
-	else if( ['ud_api', 'aqe_api', 'wam_api', 'teamdb_ember'].includes(repo) ) { 
-		remote_path = format_remote_path(local_path, 1, repo);	
-	} else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi'].includes(repo) ) { 
-		remote_path = format_remote_path(local_path, 3, repo);
-	}
+	// create remote path based on repo type
+	if( ['ud_api', 'aqe_api', 'wam_api', 'teamdb_ember'].includes(repo) )
+		remote_path = format_remote_path(local_path, 1, repo);
+
+	else if(['modules', 'external_modules', 'dev_scripts'].includes(repo)) 
+		remote_path = format_remote_path(local_path, 2, repo);
+
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi', 'aqe_cron'].includes(repo) )
+			remote_path = format_remote_path(local_path, 3, repo);
+
+	else if(['ud'].includes(repo)) remote_path = format_remote_path(local_path, 4, repo);
+	else if(['wam_cron'].includes(repo)) remote_path = format_remote_path(local_path, 5, repo);
 
 	// return local/remote paths generated
 	return [local_path, remote_path];
@@ -90,4 +91,28 @@ module.exports.formatServerStdOut = function(data){
 	data = `- ${data}`;
 	data = data.replace(/(\r\n|\n|\r)/gm,"");
 	return data;
+}
+
+/**
+*/
+module.exports.transferRepoFormatPaths = function({files, local_path_folders, local_path, remote_path, repo}){
+
+	// format local/remote file paths
+	return files.map(file => {
+
+		// create local/remote file absolute paths
+		let file_remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
+		let file_local_path =  path.join(__dirname, '..',`${local_path}\\${file_remote_path}`).replace(/\\/g,"/");
+		file_remote_path = `${remote_path}/${file_remote_path}`;
+		let base_path = path.dirname(file_remote_path);			
+
+		return {
+			remote_path:file_remote_path, 
+			local_path:file_local_path, 
+			base_path, 
+			repo, 
+			action: 'change', 
+			sync_repo:true
+		};
+	});
 }

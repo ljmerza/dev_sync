@@ -115,12 +115,13 @@ async function _sync_a_log(file, connections) {
 *	function syncLogsInterval()
 * 		download log files periodically
 */
-(async function sync_logs_interval() {
+async function sync_logs_interval() {
 	let syncing_done = true;
 
 	setInterval( async () => {
 
 		try {
+			// console.log('syncing_done: ', syncing_done);
 			// if last syncing is done then sync again else do nothing
 			if(syncing_done){
 
@@ -132,6 +133,7 @@ async function _sync_a_log(file, connections) {
 				try {
 					connections = await connection_object.sftp_connection_promise();
 					const messages = await _sync_logs(connections);
+					// console.log(messages);
 				} catch(err){
 					console.log(`syncLogsInterval::${err}`)
 				}
@@ -147,7 +149,7 @@ async function _sync_a_log(file, connections) {
 		}
 
 	}, 200);
-})();
+};
 
 /*
 *	function reset_logs()
@@ -172,4 +174,4 @@ async function reset_logs() {
 	});	
 }
 
-module.exports = {reset_logs};
+module.exports = {reset_logs, sync_logs_interval};
