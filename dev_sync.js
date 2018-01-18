@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const Promise = require("bluebird");
 const chokidar = require('chokidar');
+const memwatch = require('memwatch-next');
 
 const connections_object = require("./modules/connections");
 const formatting = require("./modules/formatting");
@@ -107,7 +108,22 @@ process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err);
 });
 
+/**
+* detect memory leaks for debugging
+*/
+memwatch.on('leak', (info) => {
+  console.error('Memory leak detected:\n', info);
+});
+memwatch.on('stats', (info) => {
+  console.error('Memory stats:\n', info);
+});
 
+// diff the heap after X ms
+let hd = new memwatch.HeapDiff();
+setTimeout( () => {
+	const diff = hd.end();
+	console.log('heap diff:\n', diff);
+}, 1000*60*5) 
 
 
 
