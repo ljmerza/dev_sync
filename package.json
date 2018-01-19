@@ -8,6 +8,7 @@
     "chokidar": "^1.7.0",
     "gauge": "^2.7.4",
     "keypress": "^0.2.1",
+    "memwatch-next": "^0.3.0",
     "node-exec-promise": "^1.0.2",
     "recursive-readdir": "^2.2.1",
     "socket.io": "^2.0.4",

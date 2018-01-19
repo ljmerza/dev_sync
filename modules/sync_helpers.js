@@ -40,8 +40,10 @@ async function sync_objects(all_files_data) {
 				// if git file then ignore
 				if(/\.git/.test(file.local_path)) return;
 				
-				synced_files_promises.push(await sync_object(connection, file));
+				synced_files_promises.push(sync_object(connection, file));
 			});	
+
+			console.log('synced_files_promises: ', synced_files_promises);
 
 			// once all files synced close connections and reset file permissions
 			await Promise.all(synced_files_promises)
@@ -100,24 +102,23 @@ async function delete_remote(remote_path){
 async function sync_object(connection, object_data) {
 	let returned_promise;
 
-	switch(object_data.action){
-		case 'change':
-			returned_promise = await sync_file(connection, object_data);
-			break;
-		case 'unlink':
-			returned_promise = await remote_commands.delete_remote_file(object_data.remote_path, connection.ssh_connection);
-			break;
-		case 'addDir':
-			returned_promise = await remote_commands.make_remote_directory(object_data.base_path, connection.ssh_connection);
-			break;
-		case 'unlinkDir':
-			returned_promise = await remote_commands.delete_remote_directory(object_data.base_path, connection.ssh_connection);
-			break;
-	}
-
-	// update loading screen and return promise
-	_update_pulse(object_data);
-	return returned_promise;
+	return new Promise(resolve => {
+		// trigger action then update pulse before resolving
+		switch(object_data.action){
+			case 'change':
+				return sync_file(connection, object_data)
+					.then(file_name => { _update_pulse(object_data); return resolve(file_name)});
+			case 'unlink':
+				return remote_commands.delete_remote_file(object_data.remote_path, connection.ssh_connection)
+					.then(file_name => { _update_pulse(object_data); return resolve(file_name)});
+			case 'addDir':
+				return remote_commands.make_remote_directory(object_data.base_path, connection.ssh_connection)
+					.then(file_name => { _update_pulse(object_data); return resolve(file_name)});
+			case 'unlinkDir':
+				return remote_commands.delete_remote_directory(object_data.base_path, connection.ssh_connection)
+					.then(file_name => { _update_pulse(object_data); return resolve(file_name)});
+		}
+	});
 }
 
 /*
@@ -125,15 +126,13 @@ async function sync_object(connection, object_data) {
 * 		syncs a file to server
 */
 async function sync_file(connection, file_data){
-	// console.log('file_data: ', file_data);
-
-	// if we are syncing repo make folder first
-	await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
-
 	return new Promise(async (resolve, reject) => {
-		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
-			if(err) return reject(`sync_file::${err}::${file_data.local_path}`);
-			return resolve(file_data.remote_path);
+		remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection)
+		.then( () => {
+			connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
+				if(err) return reject(`sync_file::${err}::${file_data.local_path}`);
+				return resolve(file_data.remote_path);
+			});
 		});
 	});
 }
