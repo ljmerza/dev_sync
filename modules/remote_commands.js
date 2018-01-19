@@ -13,11 +13,11 @@ const Promise = require("bluebird");
 async function make_remote_directory(base_path, connection) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			return execute_remote_command(`mkdir -p ${base_path}`, connection)
-			.then(() => resolve(base_path));
+			await execute_remote_command(`mkdir -p ${base_path}`, connection);
 		}catch(err){
 			return reject(`make_remote_directory::${err}`);
 		}
+		return resolve(base_path); 
 	});	
 }
 
@@ -28,11 +28,11 @@ async function make_remote_directory(base_path, connection) {
 async function delete_remote_directory(base_path, connection){
 	return new Promise(async (resolve, reject) => {
 		try {
-			return execute_remote_command(`rm -rd ${base_path}`, connection)
-			.then(() => resolve(base_path));
-		}catch(err){
+			await execute_remote_command(`rm -rd ${base_path}`, connection);
+		} catch(err){
 			return reject(`delete_remote_directory::${err}`);
 		}
+		return resolve(base_path);
 	});	
 }
 
@@ -43,11 +43,11 @@ async function delete_remote_directory(base_path, connection){
 async function delete_remote_file(remote_path, connection){
 	return new Promise(async (resolve, reject) => {
 		try {
-			return execute_remote_command(`rm ${remote_path}`, connection)
-			.then(() => resolve(base_path));
+			await execute_remote_command(`rm ${remote_path}`, connection);
 		}catch(err){
 			return reject(`delete_remote_file::${err}`);
 		}
+		return resolve(remote_path); 
 	});	
 }
 
@@ -107,15 +107,12 @@ async function execute_remote_command(command, ssh_connection) {
 				ssh_connection = await connections_object.ssh_connection_promise();
 			} else {
 				close_connection = false;
-				console.log('close_connection: ', close_connection);
 			}
-
-			console.log('ssh_connection: ', ssh_connection);
 
 			// once uploaded array is empty then execute command to reset permissions
 			ssh_connection.exec(command, (err, stream) => {
 				if(err){
-					// if(ssh_connection && close_connection) ssh_connection.end();
+					if(ssh_connection && close_connection) ssh_connection.end();
 					return reject(`execute_remote_command::exec::${err}::${command}`); 
 				}
 
@@ -135,13 +132,13 @@ async function execute_remote_command(command, ssh_connection) {
 
       			}).on('close', () => { 
       				// on close disconnect
-					// if(ssh_connection && close_connection) ssh_connection.end();
+					if(ssh_connection && close_connection) ssh_connection.end();
 					return resolve(); 
 				});
 			});
 		} catch(err) {
-			// if(ssh_connection && close_connection) ssh_connection.end();
-			return reject(`execute_remote_command::catch::${err}`);
+			if(ssh_connection && close_connection) ssh_connection.end();
+			return reject(`execute_remote_command::${err}`);
 		}
 	});
 }

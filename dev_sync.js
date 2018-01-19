@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const Promise = require("bluebird");
 const chokidar = require('chokidar');
-const memwatch = require('memwatch-next');
+// const memwatch = require('memwatch-next');
 
 const connections_object = require("./modules/connections");
 const formatting = require("./modules/formatting");
@@ -85,15 +85,7 @@ async function sftp_upload() {
 		});
 
 		try {
-			const file_objects = await sync_helpers.sync_objects(modified_upload_files);
-			// then log files synced
-			if(file_objects.length > 0) {
-				const multiple = file_objects.length == 1 ? '' : 's';
-				console.log(`${file_objects.length} object${multiple} synced:`);
-				file_objects.forEach(file => {
-					console.log('	', file);
-				})
-			}
+			await sync_helpers.sync_objects(modified_upload_files);
 		} catch(err){
 			return reject(`sftp_upload::${err}`);
 		}
@@ -111,19 +103,19 @@ process.on('uncaughtException', function(err) {
 /**
 * detect memory leaks for debugging
 */
-memwatch.on('leak', (info) => {
-  console.error('Memory leak detected:\n', info);
-});
-memwatch.on('stats', (info) => {
-  console.error('Memory stats:\n', info);
-});
+// memwatch.on('leak', (info) => {
+//   console.error('Memory leak detected:\n', info);
+// });
+// memwatch.on('stats', (info) => {
+//   console.error('Memory stats:\n', info);
+// });
 
-// diff the heap after X ms
-let hd = new memwatch.HeapDiff();
-setTimeout( () => {
-	const diff = hd.end();
-	console.log('heap diff:\n', diff);
-}, 1000*60*5) 
+// // diff the heap after X ms
+// let hd = new memwatch.HeapDiff();
+// setTimeout( () => {
+// 	const diff = hd.end();
+// 	console.log('heap diff:\n', diff);
+// }, 1000*60*5) 
 
 
 

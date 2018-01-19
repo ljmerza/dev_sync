@@ -111,7 +111,7 @@ module.exports.transferRepoFormatPaths = function({files, local_path_folders, lo
 			local_path:file_local_path, 
 			base_path, 
 			repo, 
-			action: 'change', 
+			action: 'sync', 
 			sync_repo:true
 		};
 	});
