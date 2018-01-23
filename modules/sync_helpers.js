@@ -10,6 +10,7 @@ let gauge_object;
 
 let number_of_files = 0;
 let number_files_uploaded = 0;
+const chunk_size = 7;
 
 let ceil = Math.ceil;
 Object.defineProperty(Array.prototype, 'chunk', {value: function(n) {
@@ -34,9 +35,18 @@ async function sync_objects(all_files_data) {
 
 	return new Promise(async (resolve, reject) => {
 
-		const chunk_length = parseInt(all_files_data_formatted.length / 7);
-		const file_chunks = all_files_data_formatted.chunk(chunk_length);
+		const chunk_length = parseInt(all_files_data_formatted.length / chunk_size);
 
+		// if we have less then chunk_size then just use one chunk else
+		// split up all files to upload multiple files at once
+		let file_chunks;
+		if(chunk_length == 0){
+			file_chunks = [all_files_data_formatted];
+		} else {
+			file_chunks = all_files_data_formatted.chunk(chunk_length);
+		}
+
+		// for keeping track of when we've processed all chunks
 		const number_of_chunks = file_chunks.length;
 		let processed_chunks = 0;
 
