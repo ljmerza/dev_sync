@@ -1,4 +1,8 @@
 const config = require('./../config');
+const path = require('path');
+
+// what is the folder depth of the base path to all watched files?
+const base_path_depth = path.join(__dirname, '../..').split('\\').length-1;
 
 /******************************************************************
 *	format_remote_path(local_path, slice_number, repo)
@@ -12,9 +16,10 @@ function format_remote_path(local_path, slice_number, repo) {
 	} else if(local_path.match(/\\ud\\/)){
 		local_path = local_path.replace('\\ud\\', '\\UD\\');
 	}
+	
 
 	// get remote path from local path
-	const remote_path = local_path.split('\\').slice(slice_number).join('/');
+	const remote_path = local_path.split('\\').slice(slice_number+base_path_depth).join('/');
 
 	// return full remote path based on repo type
 	if(repo.match(/cron/)){
@@ -50,17 +55,18 @@ module.exports.format_paths = function(changed_file) {
 	let local_path = changed_file.local_path;
 	let remote_path;
 
-	// create remote path
-	if('ud' === repo) remote_path = format_remote_path(local_path, 4, repo);
-	else if('wam_cron' === repo) remote_path = format_remote_path(local_path, 5, repo);
-	else if('aqe_cron' === repo) remote_path = format_remote_path(local_path, 3, repo);
-	else if(['modules', 'external_modules', 'dev_scripts'].includes(repo)) remote_path = format_remote_path(local_path, 2, repo);
-	
-	else if( ['ud_api', 'aqe_api', 'wam_api', 'teamdb_ember'].includes(repo) ) { 
-		remote_path = format_remote_path(local_path, 1, repo);	
-	} else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi'].includes(repo) ) { 
-		remote_path = format_remote_path(local_path, 3, repo);
-	}
+	// create remote path based on repo type
+	if( ['ud_api', 'aqe_api', 'wam_api', 'teamdb_ember'].includes(repo) )
+		remote_path = format_remote_path(local_path, 1, repo);
+
+	else if(['modules', 'external_modules', 'dev_scripts'].includes(repo)) 
+		remote_path = format_remote_path(local_path, 2, repo);
+
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi', 'aqe_cron'].includes(repo) )
+			remote_path = format_remote_path(local_path, 3, repo);
+
+	else if(['ud'].includes(repo)) remote_path = format_remote_path(local_path, 4, repo);
+	else if(['wam_cron'].includes(repo)) remote_path = format_remote_path(local_path, 5, repo);
 
 	// return local/remote paths generated
 	return [local_path, remote_path];
@@ -73,13 +79,10 @@ module.exports.format_paths = function(changed_file) {
 */
 module.exports.format_files = function(all_files_data) {
 	return all_files_data.map( file => {
-		return {
-			remote_path: file.remote_path.replace(/\\/g, '/'),
-			local_path: file.local_path.replace(/\/|\\/g, '\\'),
-			base_path: file.base_path.replace(/\\/g, '/'),
-			repo: file.repo,
-			dir: file.dir
-		};
+		file.remote_path = file.remote_path.replace(/\\/g, '/');
+		file.local_path = file.local_path.replace(/\//g, '\\');
+		file.base_path = file.base_path.replace(/\\/g, '/');
+		return file;
 	});
 }
 
@@ -88,4 +91,28 @@ module.exports.formatServerStdOut = function(data){
 	data = `- ${data}`;
 	data = data.replace(/(\r\n|\n|\r)/gm,"");
 	return data;
+}
+
+/**
+*/
+module.exports.transferRepoFormatPaths = function({files, local_path_folders, local_path, remote_path, repo}){
+
+	// format local/remote file paths
+	return files.map(file => {
+
+		// create local/remote file absolute paths
+		let file_remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
+		let file_local_path =  path.join(__dirname, '..',`${local_path}\\${file_remote_path}`).replace(/\\/g,"/");
+		file_remote_path = `${remote_path}/${file_remote_path}`;
+		let base_path = path.dirname(file_remote_path);			
+
+		return {
+			remote_path:file_remote_path, 
+			local_path:file_local_path, 
+			base_path, 
+			repo, 
+			action: 'sync', 
+			sync_repo:true
+		};
+	});
 }
