@@ -78,9 +78,9 @@ async function sync_objects(all_files_data) {
 					// then log files synced
 					if(all_files_data.length > 0) {
 						const multiple = all_files_data.length == 1 ? '' : 's';
-						console.log(`${all_files_data.length} object${multiple} synced:`);
+						console.log(`${all_files_data.length} object${multiple} processed:`);
 						all_files_data.forEach(file => {
-							console.log(`	${file.remote_path}`);
+							console.log(`	${file.action} -> ${file.remote_path}`);
 						})
 					}
 					return resolve();

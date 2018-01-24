@@ -15,10 +15,10 @@ async function make_remote_directory(base_path, connection) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(`mkdir -p ${base_path}`, connection);
-			return resolve();
 		} catch(err){
 			return reject(`make_remote_directory::${err}`);
 		}
+		return resolve();
 	});
 }
 
@@ -31,10 +31,10 @@ async function delete_remote_directory(base_path, connection){
 	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(`rm -rd ${base_path}`, connection);
-			return resolve();
 		} catch(err){
 			return reject(`delete_remote_directory::${err}`);
 		}
+		return resolve();
 	});
 }
 
@@ -47,10 +47,10 @@ async function delete_remote_file(remote_path, connection){
 	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(`rm ${remote_path}`, connection);
-			return resolve();
 		} catch(err){
 			return reject(`delete_remote_file::${err}`);
 		}
+		return resolve();
 	});
 }
 
@@ -64,10 +64,10 @@ async function delete_remote_repo(repo_path, connection) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(`rm -rd ${repo_path}`, connection);
-			return resolve();
 		} catch(err){
 			return reject(`delete_remote_repo::${err}`);
 		}
+		return resolve();
 	});
 }
 
@@ -86,10 +86,10 @@ async function update_permissions(uploaded_files) {
 		// try to execute command
 		try {
 			await execute_remote_command(command);
-			return resolve();
 		} catch(err){
 			return reject(`update_permissions::${err}`);
 		}
+		return resolve();
 	});
 }
 
@@ -160,10 +160,10 @@ async function restart_hypnotoad(path, repo) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(`hypnotoad -s ${path}; hypnotoad ${path}`);
-			return resolve();
 		} catch(err){
 			return reject(`restart_hypnotoad::${err}`)
 		}
+		return resolve();
 	});
 }
 
@@ -179,10 +179,10 @@ async function restart_apache() {
 	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(`apache.sh`);
-			return resolve();
 		} catch(err){
 			return reject(`restart_apache::${err}`)
 		}
+		return resolve();
 	});
 }
 
