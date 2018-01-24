@@ -6,21 +6,28 @@ const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
 const path = require('path');
 const Gauge = require("gauge");
-let gauge_object;
 
+let gauge_object;
 let number_of_files = 0;
 let number_files_uploaded = 0;
-const chunk_size = 7;
 
-let ceil = Math.ceil;
-Object.defineProperty(Array.prototype, 'chunk', {value: function(n) {
-    return Array(ceil(this.length/n)).fill().map((_,i) => this.slice(i*n,i*n+n));
-}});
+/**
+ * splits an array up into chunks
+ * @param {integer} length
+ */
+Object.defineProperty(Array.prototype, 'chunk', {
+	value: function(n) {
+    	return Array(Math.ceil(this.length/n))
+    	.fill()
+    	.map((_,i) => this.slice(i*n,i*n+n));
+	}
+});
 
-/*
-*	function sync_objects(all_files_data)
-* 		syncs all files to server
-*/
+
+/**
+ * syncs all files to server
+ * @param {object} remote_path
+ */
 async function sync_objects(all_files_data) {
 
 	// make sure all file paths are correct format for Windows/UNIX
@@ -35,34 +42,19 @@ async function sync_objects(all_files_data) {
 
 	return new Promise(async (resolve, reject) => {
 
-		const chunk_length = parseInt(all_files_data_formatted.length / chunk_size);
-
-		// if we have less then chunk_size then just use one chunk else
-		// split up all files to upload multiple files at once
-		let file_chunks;
-		if(chunk_length == 0){
-			file_chunks = [all_files_data_formatted];
-		} else {
-			file_chunks = all_files_data_formatted.chunk(chunk_length);
-		}
-
-		// for keeping track of when we've processed all chunks
-		const number_of_chunks = file_chunks.length;
-		let processed_chunks = 0;
+		// split up array of files into chunks
+		let [file_chunks, number_of_chunks, processed_chunks] = _chunk_files(all_files_data_formatted)
 
 		file_chunks.forEach(async file_chunk => {
 
 			let connection;
 			try {
 				connection = await connections_object.sftp_connection_promise();
-				// sync files
-				await async_for_each(file_chunk, async file => {
-					// if git file then ignore
-					if(/\.git/.test(file.local_path)) return;
-					
-					synced_files_promises.push(await sync_object(connection, file));
 
-					// update loading screen and return promise
+				await async_for_each(file_chunk, async file => {
+					// if git file then ignore, sync file, update pulse animation
+					if(/\.git/.test(file.local_path)) return;
+					synced_files_promises.push(await sync_object(connection, file));
 					_update_pulse(file);
 				});
 
@@ -72,17 +64,7 @@ async function sync_objects(all_files_data) {
 
 				// if we have processed all chunks then clean up
 				if(++processed_chunks === number_of_chunks){
-					gauge_object.hide();
-					await remote_commands.update_permissions(all_files_data);
-
-					// then log files synced
-					if(all_files_data.length > 0) {
-						const multiple = all_files_data.length == 1 ? '' : 's';
-						console.log(`${all_files_data.length} object${multiple} processed:`);
-						all_files_data.forEach(file => {
-							console.log(`	${file.action} -> ${file.remote_path}`);
-						})
-					}
+					_process_synced_ojects(all_files_data);
 					return resolve();
 				};
 
@@ -100,9 +82,53 @@ async function sync_objects(all_files_data) {
 }
 
 /**
-*	function delete_remote(remote_path)
-*		deletes a remote folder or file
-*/
+ * hides gauge, sets remote file permissions, logs files processed
+ * @param {object} all_files_data
+ */
+async function _process_synced_ojects(all_files_data){
+
+	// hide gauge and set permissions
+	gauge_object.hide();
+	await remote_commands.update_permissions(all_files_data);
+
+	// then log files synced
+	if(all_files_data.length > 0) {
+		const multiple = all_files_data.length == 1 ? '' : 's';
+		console.log(`${all_files_data.length} object${multiple} processed:`);
+		all_files_data.forEach(file => {
+			console.log(`	${file.action} -> ${file.remote_path}`);
+		})
+	}
+}
+
+
+/**
+ * takes an array and breaks it up into an array of arrays
+ * @param {object} all_files_data_formatted
+ */
+function _chunk_files(all_files_data_formatted){
+
+	const chunk_length = parseInt(all_files_data_formatted.length / 8);
+
+	// if we have less then chunk_size then just use one chunk else
+	// split up all files to upload multiple files at once
+	let file_chunks;
+	if(chunk_length == 0){
+		file_chunks = [all_files_data_formatted];
+	} else {
+		file_chunks = all_files_data_formatted.chunk(chunk_length);
+	}
+
+	// for keeping track of when we've processed all chunks
+	const number_of_chunks = file_chunks.length;
+
+	return [file_chunks, number_of_chunks, 0]
+}
+
+/**
+ * deletes a remote folder or file
+ * @param {string} remote_path
+ */
 async function delete_remote(remote_path){
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -114,11 +140,11 @@ async function delete_remote(remote_path){
 	});
 }
 
-
-/*
-*	function sync_object(connection, object_data)
-* 		syncs an object to the server
-*/
+/**
+ * syncs an object to the remote server
+ * @param {ssh connection} connection
+ * @param {object} object_data
+ */
 async function sync_object(connection, object_data) {
 	switch(object_data.action){
 		case 'change':
@@ -133,10 +159,11 @@ async function sync_object(connection, object_data) {
 	}
 }
 
-/*
-*	function sync_file(connection, file_data)
-* 		syncs a file to server
-*/
+/**
+ * syncs a file to the remote server
+ * @param {ssh connection} connection
+ * @param {object} file_data
+ */
 async function sync_file(connection, file_data){
 	// console.log('file_data: ', file_data);
 
@@ -151,40 +178,41 @@ async function sync_file(connection, file_data){
 	});
 }
 
-/*
-*	_update_pulse(object_data)
-*		updates pulse animation
-*/
+/**
+ * updates pulse animation
+ * @param {object} object_data
+ */
 function _update_pulse(object_data) {
 	number_files_uploaded++;
 	gauge_object.show(object_data.action, number_files_uploaded/number_of_files);
 	gauge_object.pulse(object_data.remote_path);
 }
 
+/**
+ * upload a repo to the server
+ * @param {string} original_local_path
+ * @param {string} original_remote_path
+ * @param {string} repo
+ */
+async function transfer_repo(original_local_path, original_remote_path, repo) {
 
-/*
-*	function transfer_repo(local_path, remote_path, repo) 
-* 		upload a repo to the server
-*/
-async function transfer_repo(local_path, remote_path, repo) {
-
-	let local_path_folders = local_path.split('/');
+	let local_path_folders = original_local_path.split('/');
 	let files_to_upload = [];
 
 	return new Promise( async (resolve, reject) => {
 
 		// get all file path in local folder given
-		recursive(local_path, async (err, files) => {
+		recursive(original_local_path, async (err, files) => {
 			if(err) { return reject(`transfer_repo::recursive::err: ${err}`); }
 
 			try {
 				// format local/remote file paths
 				const files_to_upload = formatting.transferRepoFormatPaths({
-					files, local_path_folders, local_path, remote_path, repo
+					files, local_path_folders, original_local_path, original_remote_path, repo
 				});
 
 				// delete remote repo first then sync files
-				await remote_commands.delete_remote_directory(remote_path);
+				await remote_commands.delete_remote_directory(original_remote_path);
 				await sync_objects(files_to_upload);
 				return resolve();
 			} catch(err){

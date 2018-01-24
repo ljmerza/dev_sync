@@ -4,10 +4,12 @@ const path = require('path');
 // what is the folder depth of the base path to all watched files?
 const base_path_depth = path.join(__dirname, '../..').split('\\').length-1;
 
-/******************************************************************
-*	format_remote_path(local_path, slice_number, repo)
-* 		formats a local file path for remote path
-******************************************************************/
+/**
+ * formats a local file path for remote path
+ * @param {string} local_path
+ * @param {integer} slice_number
+ * @param {string} repo
+ */
 function format_remote_path(local_path, slice_number, repo) {
 
 	// change capitalization of UD if needed
@@ -43,40 +45,40 @@ function format_remote_path(local_path, slice_number, repo) {
 	}	
 }
 
-
-/******************************************************************
-*	format_paths(changed_files, hypnotoad)
-* 		formats local and remote file paths for sFTP
-******************************************************************/
+/**
+ * formats local and remote file paths for sFTP
+ * @param {object} changed_file
+ */
 module.exports.format_paths = function(changed_file) {
 
 	// get path and repo name
 	let repo = changed_file.repo;
 	let local_path = changed_file.local_path;
 	let remote_path;
+	let file_path_strip = 1; // how many folders to strip from file path from beginning
 
-	// create remote path based on repo type
-	if( ['ud_api', 'aqe_api', 'wam_api', 'teamdb_ember'].includes(repo) )
-		remote_path = format_remote_path(local_path, 1, repo);
+	// these repos require the object path to be stripped to concat with the base path
+	if(['modules', 'external_modules', 'dev_scripts'].includes(repo))
+		file_path_strip = 2;
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(repo) )
+		file_path_strip = 3;
+	else if(['ud'].includes(repo)) 
+		file_path_strip = 4;
+	else if(['wam_cron'].includes(repo)) 
+		file_path_strip = 5;
 
-	else if(['modules', 'external_modules', 'dev_scripts'].includes(repo)) 
-		remote_path = format_remote_path(local_path, 2, repo);
-
-	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi', 'aqe_cron'].includes(repo) )
-			remote_path = format_remote_path(local_path, 3, repo);
-
-	else if(['ud'].includes(repo)) remote_path = format_remote_path(local_path, 4, repo);
-	else if(['wam_cron'].includes(repo)) remote_path = format_remote_path(local_path, 5, repo);
+	// create remote path
+	remote_path = format_remote_path(local_path, file_path_strip, repo);
 
 	// return local/remote paths generated
 	return [local_path, remote_path];
 }
 
 
-/*
-*	format_files(all_files_data)
-* 		makes sure file paths have proper folder structure for Windows/UNIX
-*/
+/**
+ * makes sure file paths have proper folder structure for Windows/UNIX
+ * @param {Array<object>} all_files_data
+ */
 module.exports.format_files = function(all_files_data) {
 	return all_files_data.map( file => {
 		file.remote_path = file.remote_path.replace(/\\/g, '/');
@@ -86,7 +88,10 @@ module.exports.format_files = function(all_files_data) {
 	});
 }
 
-
+/**
+ * formats the output from executing a command through ssh
+ * @param {string} 
+ */
 module.exports.formatServerStdOut = function(data){
 	data = `- ${data}`;
 	data = data.replace(/(\r\n|\n|\r)/gm,"");
@@ -94,25 +99,24 @@ module.exports.formatServerStdOut = function(data){
 }
 
 /**
-*/
-module.exports.transferRepoFormatPaths = function({files, local_path_folders, local_path, remote_path, repo}){
+ * creates remote and local paths when syncing an entire repo
+ * @param {object} files
+ * @param {Array} local_path_folders
+ * @param {string} original_local_path
+ * @param {string} original_remote_path
+ * @param {string} repo
+ */
+module.exports.transferRepoFormatPaths = function({files, local_path_folders, original_local_path, original_remote_path, repo}){
 
 	// format local/remote file paths
 	return files.map(file => {
 
 		// create local/remote file absolute paths
-		let file_remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
-		let file_local_path =  path.join(__dirname, '..',`${local_path}\\${file_remote_path}`).replace(/\\/g,"/");
-		file_remote_path = `${remote_path}/${file_remote_path}`;
-		let base_path = path.dirname(file_remote_path);			
+		let remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
+		let local_path =  path.join(__dirname, '..',`${original_local_path}\\${remote_path}`).replace(/\\/g,"/");
+		remote_path = `${original_remote_path}/${remote_path}`;
+		let base_path = path.dirname(remote_path);			
 
-		return {
-			remote_path:file_remote_path, 
-			local_path:file_local_path, 
-			base_path, 
-			repo, 
-			action: 'sync', 
-			sync_repo:true
-		};
+		return {remote_path, local_path, base_path, repo, action: 'sync', sync_repo:true};
 	});
 }
