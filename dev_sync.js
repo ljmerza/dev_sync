@@ -29,7 +29,7 @@ Object.keys(config.local_paths)
 .forEach( element => {
 
 	chokidar.watch(path.join(__dirname, element.dir), {
-		ignored: /(^|[\/\\])\../,
+		ignored: /\.git/,
 		persistent: true,
 		ignoreInitial: true,
 	})
