@@ -150,7 +150,7 @@ process.stdin.on('keypress', async function (ch, key) {
 				message = await remote_commands.execute_remote_command(command)
 
 			} else if (hypnotoad) {
-				message = await remote_commands.restart_hypnotoad(hypnotoad, repo_name)
+				message = await remote_commands.restart_hypnotoad(hypnotoad);
 
 			} else if ( key_presses === 'logs' ) {
 				message = await logs.reset_logs();

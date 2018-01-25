@@ -53,52 +53,65 @@ Object.keys(config.local_paths)
 logs.sync_logs_interval();
 
 /**
-*/
+ * syncs files from local to remote server on a debounced timer
+ */
 function sync_files_timer() {
 	// clear last timeout and start a new one
 	clearTimeout(current_timer);
 	current_timer = setTimeout( () => {
-		sftp_upload()
-		.catch( err => console.log(`dev_sync::${err}`) );
-	}, 1000);
+		remote_sync().catch(err => console.log(`dev_sync::${err}`));
+	}, 500);
 }
 
 
 
-/*
-*	function sftp_upload()
-* 		uploads file to dev server, sets permissions, 
-*/
-async function sftp_upload() {
-	// copy array and empty old one
+/**
+ * syncs files with server 
+ * @returns {Promise<string|null>} promise with error string if error else null
+ */
+async function remote_sync() {
+
+	// copy global array of files needing syncing and it for new files to join
 	const upload_files = changed_files.slice();
 	changed_files = [];
 
 	return new Promise(async (resolve, reject) => {
-		// for each file, format paths
-		const modified_upload_files = upload_files.map( file => {
-			// create local/remote paths and get base path of file/folder
-			const [local_path, remote_path] = formatting.format_paths(file);
-			const base_path = ['addDir', 'unlinkDir'].includes(file.action) ? remote_path : path.dirname(remote_path);
-			// return new structure
-			return {local_path, remote_path, base_path, repo:file.repo, action:file.action};
-		});
-
 		try {
+			const modified_upload_files = prepare_files_for_sync(files);
 			await sync_helpers.sync_objects(modified_upload_files);
+			return resolve();
 		} catch(err){
-			return reject(`sftp_upload::${err}`);
+			return reject(`remote_sync::${err}`);
 		}
+	});
+}
+
+/**
+ * perpares files' remote, local, and base paths for syncing with server
+ * @params {Array<object>} files array of file objects to format
+ * @returns {Array<object>} array of formatted objects
+ */
+function prepare_files_for_sync(files) {
+	return upload_files.map( file => {
+
+		// create remote and base paths
+		const remote_path = formatting.format_remote_path(file);
+		const base_path = ['addDir', 'unlinkDir'].includes(file.action) ? remote_path : path.dirname(remote_path);
+		
+		// return new structure
+		return {file.local_path, remote_path, base_path, repo:file.repo, action:file.action};
 	});
 }
 
 
 /*
-* catch all errors here
-*/
-process.on('uncaughtException', function(err) {
-  console.log('Caught exception: ' + err);
+ * catches all uncaught errors in app
+ */
+process.on('uncaughtException', err => {
+  console.log(`Uncaught exception: ${err}`);
 });
+
+
 
 /**
 * detect memory leaks for debugging

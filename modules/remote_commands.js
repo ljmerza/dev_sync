@@ -77,70 +77,54 @@ async function delete_remote_repo(repo_path, connection) {
  */
 async function update_permissions(uploaded_files) {
 
-	return new Promise(async (resolve, reject) => {
-		// create command for all files uploaded
-		const command = uploaded_files.reduce( (command, uploaded_file) => {
-			return `${command}chgrp m5atools ${uploaded_file.remote_path}; chmod 770 ${uploaded_file.remote_path};`
-		}, '');
+	// create command for all files uploaded
+	const command = uploaded_files.reduce( (command, uploaded_file) => {
+		return `${command}chgrp m5atools ${uploaded_file.remote_path}; chmod 770 ${uploaded_file.remote_path};`
+	}, '');
 
-		// try to execute command
+	return new Promise(async (resolve, reject) => {
 		try {
 			await execute_remote_command(command);
+			return resolve();
 		} catch(err){
 			return reject(`update_permissions::${err}`);
 		}
-		return resolve();
 	});
 }
 
 
 /**
- * exec a bash command remotely
- * @param {string} command
- * @param {ssh2 connection} connection
+ * execute a bash command remotely. Prints stdout and stderr to console
+ * @param {string} command the bash command to execute on the server
+ * @param {object} connection optional ssh2 connection to execute command
+ * @returns {Promise<string|null>} returns error string or null on success
  */
 async function execute_remote_command(command, connection) {
-
-	// if given a connection object dont close at the end
-	let close_connection = false;
+	let is_temporary_connection = !connection;
 
 	return new Promise(async (resolve, reject) => {
-
 		try {
 
-			// if SSH connection wasn't passed then get one
-			if(!connection){
-				connection = await connections_object.ssh_connection_promise();
-				close_connection = true;
+			// if SSH connection wasn't passed then get a temporary one
+			// we will close when this exec is done
+			if(is_temporary_connection){
+				connection = await connections_object.ssh_connection();
 			}
 
-			// once uploaded array is empty then execute command to reset permissions
+			// execute command on remote server
 			connection.exec(command, (err, stream) => {
-				if(err){
-					if(connection && close_connection) connection.end();
-					return reject(`execute_remote_command::exec::${err}::`); 
-				}
+				if(err) throw new Error(`::exec::${err}`);
 
-				// on data or error event -> format then log stdout from server
-				stream.on('data', data => {
-					// on data received - process it
-					data = formatting.formatServerStdOut(data);
-					if(command == 'hostname') console.log('\nConnected with:', data);
-					else console.log(data);
-
-				}).stderr.on('data', error => {
-					// on error data received process it - dont show certain errors
-					data = formatting.formatServerStdOut(error).trim();
-					if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
-						console.log(data);
-					}
-
-	  			}).on('close', () => { 
-	  				// on close disconnect
-					if(connection && close_connection) connection.end();
+				// process exec output
+				stream
+				.on('data', _log_execute_output)
+				.stderr.on('data',  _log_execute_error)
+				.on('close', () => {
+					if(connection && is_temporary_connection) connection.end();
 					return resolve(); 
 				});
 			});
+
 		} catch(err) {
 			if(connection && close_connection) connection.end();
 			return reject(`execute_remote_command::${err}`);
@@ -148,42 +132,58 @@ async function execute_remote_command(command, connection) {
 	});
 }
 
-
 /**
- * restarts a repo's hypnotoad
- * @param {string} path
- * @param {string} repo
+ *	executes a command on the remote server. Prints stderr/out to console
+ * @param {string} command the command string to execute remotely
+ * @param {object} connection optional ssh2 connection to execute command
  */
-async function restart_hypnotoad(path, repo) {
-	console.log(`restarting ${repo} hypnotoad...`);
-
+function _execute_command(command, connection){
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`hypnotoad -s ${path}; hypnotoad ${path}`);
+			await execute_remote_command(command, connection);
+			return resolve();
 		} catch(err){
-			return reject(`restart_hypnotoad::${err}`)
+			return reject(`execute_command::${err}`)
 		}
-		return resolve();
 	});
+}
+
+/**
+ * logs the formatted data input to the console
+ * @param {string} output the output string to format and log 
+ */
+function _log_execute_output(output){
+	output = formatting.format_output(output);
+	if(command == 'hostname') console.log('\nConnected with:', output);
+	else console.log(output);
+}
+
+/**
+ * logs the formatted data stderr to the console
+ * @param {string} error the error string to format and log
+ */
+function _log_execute_error(error){
+	// on error data received process it - dont show certain errors
+	data = formatting.format_output(error).trim();
+	if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
+		console.log(data);
+	}
+}
+
+/**
+ * restarts a hypnotoad instance
+ * @param {string} remote path to hypnotoad start file
+ */
+async function restart_hypnotoad(path) {
+	return _execute_command(`hypnotoad -s ${path}; hypnotoad ${path}`);
 }
 
 
 /*
- * restarts a user's apache
- * @param {string} base_path
- * @param {ssh2 connection} connection
+ * restarts a user's apache instance
  */
 async function restart_apache() {
-	console.log(`restarting apache...`);
-
-	return new Promise(async (resolve, reject) => {
-		try {
-			await execute_remote_command(`apache.sh`);
-		} catch(err){
-			return reject(`restart_apache::${err}`)
-		}
-		return resolve();
-	});
+	return _execute_command(`apache.sh`);
 }
 
 

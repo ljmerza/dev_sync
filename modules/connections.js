@@ -1,103 +1,118 @@
 const SSH2 = require('ssh2');
 const fs = require('fs');
 const config = require('./../config');
-
-
-let ppk_file;
+connections = []; // keeps track of all connections for exiting application
 
 // try to get PPK file
+let ppk_file;
 try {
 	ppk_file = fs.readFileSync(config.ppk_file_path);
 } catch(err) {
 	throw Error(`No ppk file found: ${err}`);
 }
 
-// keeps track of all connections for exiting application
-connections = [];
-
 /*
-*/
+ * overrides the Client constructor to add global
+ * tracking of open connections to the server
+ * @returns a new ssh2 connection object
+ */
 function Client(){
 	return _override_connection( new SSH2() );
 }
 
 /*
-*	ssh_connection_promise()
-* 		return a ssh connection promise
-*/
-function ssh_connection_promise() {
-	return new Promise( (resolve, reject) => {
-		// create ssh object
-		let ssh_connection = new Client();
-
-		// connect to server
-		ssh_connection.connect({
+ * creates a ssh connection
+ * @returns {Promise<object|string>} a promise with the sftp object if
+ * connection successful else an error string
+ */
+function ssh_connection() {
+	return new Promise(resolve => {
+		
+		const ssh_connection = new Client()
+		.connect({
 			host: config.host,
 			port: config.port,
 			username: config.attuid,
 			privateKey: ppk_file
-		})
-		ssh_connection.on('ready', () => {
+		}).on('ready', () => {
 			resolve(ssh_connection);
-		})
+		});
 	});
 }
 
 
-/*
-*	sftp_connection_promise()
-* 		return a sFTP connection promise
+/**
+ * creates a ssh and sftp connenction to the server
+ * @returns {Promise<object|string>} a promise with the sftp object if
+ * connection successful else an error string 
 */
-async function sftp_connection_promise() {
+async function sftp_connection() {
 	return new Promise(async (resolve, reject) => {
 		let ssh_connection;
+		
 		try {
-			ssh_connection = await ssh_connection_promise();
+			ssh_connection = await ssh_connection();
 			ssh_connection.sftp( (err, sftp_connection) => {
-				if(err) { throw Error(`sftp::${err}`); }
+				if(err) { throw Error(`sftp_connection::sftp::${err}`); }
 
+				// override sftp object to add global tracking of connection
 				sftp_connection = _override_connection(sftp_connection);
 				return resolve({ sftp_connection, ssh_connection });
 			});
+
 		}catch(err){
 			if(ssh_connection) ssh_connection.end();
-			return reject(`sftp_connection_promise::${err}`);
+			return reject(`sftp_connection::${err}`);
 		}
 	});
 }
 
 /*
-*	_override_connection(connection)
-*		adds a symbol id to a connection object and pushes
-*		to global connections array to keep track of open connections
-*		overrides the end function to update the open connections array
+* adds a symbol id to a connection object and pushes
+* to global connections array to keep track of open connections
+* overrides the end function to update the open connections array
+ * @param {object} connection the ssh2 connection object to modify
 */
 function _override_connection(connection){
+	_add_connection_to_global(connnection);
+	return _override_close_connection(connection);
+}
 
-	// create symbol and save on connections array
+/**
+ * creates a Symbol object to add to the connection object
+ * which are both stored in the global connections array
+ * @param {object} connection the ssh2 connection object to add to the global array
+ */
+function _add_connection_to_global(connection){
 	const symbol = Symbol();
 	connection.symbol = symbol;
 	connections.push({symbol, connection});
-	// console.log('open connection...');
+}
 
+/**
+ * overrides a connection object's end() method
+ * so when closing a connection to the server we can
+ * remove it from the global connections Array
+ * @param {object} connection the ssh2 connection object to modify
+ * @returns {object} the modified ssh2 connection object
+ */
+function _override_close_connection(connection){
 	// save old end function
 	const end_connection = connection.end;
 
 	// override end function
 	connection.end = function(){
-		// console.log('close connection...');
 
 		// call end to connection 
 		end_connection.apply(this);
 
 		// filter out connection from array
-		connections = connections.filter(connects => {
-			return connection.symbol != connects.symbol
-		});
+		connections = connections.filter(connects => connection.symbol != connects.symbol);
 	}
 
 	// return the modified connection object
 	return connection;
 }
 
-module.exports = {ssh_connection_promise, sftp_connection_promise, connections};
+
+module.exports = {ssh_connection, sftp_connection, connections};

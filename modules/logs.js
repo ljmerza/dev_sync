@@ -23,10 +23,11 @@ let log_files = [
 ];
 
 
-/*
-*	function _sync_logs(connections)
-* 		syncs log files from server to host
-*/
+/**
+ * syncs log files from server to host
+ * @params {object} connections
+ * @returns {Promise<string>}
+ */
 async function _sync_logs(connections) {
 	return new Promise( async (resolve, reject) => {
 		
@@ -49,10 +50,9 @@ async function _sync_logs(connections) {
 
 
 
-/*
-*	function _sync_a_log(file, connections)
-* 		syncs a log file from server to host
-*/
+/**
+ * syncs a log file from server to host
+ */
 async function _sync_a_log(file, connections) {
 
 	const sftp_connection = connections.sftp_connection;
@@ -130,7 +130,7 @@ async function sync_logs_interval() {
 
 				// try to sync all logs
 				try {
-					connections = await connection_object.sftp_connection_promise();
+					connections = await connection_object.sftp_connection();
 					const messages = await _sync_logs(connections);
 					// console.log(messages);
 				} catch(err){

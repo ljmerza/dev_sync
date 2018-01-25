@@ -49,13 +49,13 @@ async function sync_objects(all_files_data) {
 
 			let connection;
 			try {
-				connection = await connections_object.sftp_connection_promise();
+				connection = await connections_object.sftp_connection();
 
 				await async_for_each(file_chunk, async file => {
 					// if git file then ignore, sync file, update pulse animation
 					if(/\.git/.test(file.local_path)) return;
 					synced_files_promises.push(await sync_object(connection, file));
-					_update_pulse(file);
+					_update_pulse(file.action, file.remote_path);
 				});
 
 				// close connections
@@ -128,6 +128,7 @@ function _chunk_files(all_files_data_formatted){
 /**
  * deletes a remote folder or file
  * @param {string} remote_path
+ * @returns {Promise<string|null>} error string on error or null on success
  */
 async function delete_remote(remote_path){
 	return new Promise(async (resolve, reject) => {
@@ -163,11 +164,9 @@ async function sync_object(connection, object_data) {
  * syncs a file to the remote server
  * @param {ssh connection} connection
  * @param {object} file_data
+ * @returns {Promise<string>} error string on error or remote path of file synced
  */
 async function sync_file(connection, file_data){
-	// console.log('file_data: ', file_data);
-
-	// if we are syncing repo make folder first
 	await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
 
 	return new Promise(async (resolve, reject) => {
@@ -179,26 +178,26 @@ async function sync_file(connection, file_data){
 }
 
 /**
- * updates pulse animation
- * @param {object} object_data
+ * updates pulse animation with action name and remote object action
+ * was performed on the object
+ * @param {string} action the name of the action performed
+ * @param {string} the remote path to the object the action was performed on
  */
-function _update_pulse(object_data) {
+function _update_pulse(action, remote_path) {
 	number_files_uploaded++;
-	gauge_object.show(object_data.action, number_files_uploaded/number_of_files);
-	gauge_object.pulse(object_data.remote_path);
+	gauge_object.show(action, number_files_uploaded/number_of_files);
+	gauge_object.pulse(remote_path);
 }
 
 /**
- * upload a repo to the server
- * @param {string} original_local_path
- * @param {string} original_remote_path
- * @param {string} repo
+ * given a local and remote path, deletes the remote folder and 
+ * uploads all files from local client to the remote client
+ * @param {string} local_path the unmodified local path to add to each file
+ * @param {string} remote_path the unmodified remote path to add to each file
+ * @param {string} repo the name of the repo to tie all files to
+ * @returns {Promise<string|null>} returns a promise with an error string or null if success
  */
-async function transfer_repo(original_local_path, original_remote_path, repo) {
-
-	let local_path_folders = original_local_path.split('/');
-	let files_to_upload = [];
-
+async function transfer_repo(local_path, remote_path, repo) {
 	return new Promise( async (resolve, reject) => {
 
 		// get all file path in local folder given
@@ -207,14 +206,19 @@ async function transfer_repo(original_local_path, original_remote_path, repo) {
 
 			try {
 				// format local/remote file paths
-				const files_to_upload = formatting.transferRepoFormatPaths({
-					files, local_path_folders, original_local_path, original_remote_path, repo
+				let files_to_upload = formatting.format_repo_paths(files, local_path, remote_path)
+				.map(file => {
+					// tie files to a repo and the sync action
+					file.repo = repo;
+					file.action = 'sync';
 				});
+
 
 				// delete remote repo first then sync files
 				await remote_commands.delete_remote_directory(original_remote_path);
 				await sync_objects(files_to_upload);
 				return resolve();
+
 			} catch(err){
 				return reject(`transfer_repo::${err}`);
 			}
@@ -222,8 +226,11 @@ async function transfer_repo(original_local_path, original_remote_path, repo) {
 	});	
 }
 
-/*
-*/
+/**
+ * syncronously loops through an array calling an asyncronous callback on each item
+ * @param {Array} array the array of items to loop through
+ * @param {Function} callback the function to call for each item in the array
+ */
 async function async_for_each(array, callback) {
 	for (let index = 0; index < array.length; index++) {
 		await callback(array[index], index, array)
