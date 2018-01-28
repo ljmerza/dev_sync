@@ -1,7 +1,9 @@
 const SSH2 = require('ssh2');
 const fs = require('fs');
 const config = require('./../config');
-connections = []; // keeps track of all connections for exiting application
+const sync_helpers = require('./sync_helpers');
+
+connections = []; // keeps track of all open ssh connections
 
 // try to get PPK file
 let ppk_file;
@@ -70,7 +72,7 @@ async function sftp_connection() {
 /*
 * adds a symbol id to a connection object and pushes
 * to global connections array to keep track of open connections
-* overrides the end function to update the open connections array
+* overrides the end function to update the global connections array
  * @param {object} connection the ssh2 connection object to modify
 */
 function _override_connection(connection){
@@ -97,22 +99,26 @@ function _add_connection_to_global(connection){
  * @returns {object} the modified ssh2 connection object
  */
 function _override_close_connection(connection){
-	// save old end function
 	const end_connection = connection.end;
 
-	// override end function
 	connection.end = function(){
-
-		// call end to connection 
 		end_connection.apply(this);
-
-		// filter out connection from array
 		connections = connections.filter(connects => connection.symbol != connects.symbol);
 	}
-
-	// return the modified connection object
 	return connection;
 }
+
+
+// on SIGTERM -> for each connection still open close it before exiting
+process.on('SIGTERM', () => {
+
+	await sync_helpers.async_for_each(connections, conn_object =>{
+		console.log('killing ssh connection...');
+		conn_object.connection.end();
+	});
+	
+	process.exit();
+});
 
 
 module.exports = {ssh_connection, sftp_connection, connections};

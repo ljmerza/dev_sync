@@ -105,12 +105,20 @@ function prepare_files_for_sync(files) {
 
 
 /*
- * catches all uncaught errors in app
+ * catches all uncaught promise errors in app
  */
-process.on('uncaughtException', err => {
-  console.log(`Uncaught exception: ${err}`);
+process.on('uncaughtException', (reason,p) => {
+	console.log(`Unhandled Rejection at: ${p}, reason:, ${reason}`);
 });
 
+/**
+ * prints warnings such as max event listeners reached
+ */
+process.on('warning', (warning) => {
+	console.warn(warning.name);    // Print the warning name
+  	console.warn(warning.message); // Print the warning message
+  	console.warn(warning.stack);   // Print the stack trace
+});
 
 
 /**

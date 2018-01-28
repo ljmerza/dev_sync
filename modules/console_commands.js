@@ -1,4 +1,3 @@
-
 const keypress = require('keypress');
 const Promise = require("bluebird");
 
@@ -8,33 +7,31 @@ const logs = require('./logs');
 const remote_commands = require('./remote_commands');
 const sync_helpers = require('./sync_helpers');
 
-// make `process.stdin` begin emitting "keypress" events
+// pipe stin through keypress, wtach for keypress even then pipe stdin back
 keypress(process.stdin);
+process.stdin.on('keypress', process_keypress);
+process.stdin.setRawMode(true);
+process.stdin.resume();
 
 let collected_keys = '';
-
-// listen for the "keypress" event
-process.stdin.on('keypress', async function (ch, key) {
-
-	// kill process if send SIGTERM
-	if (key && key.ctrl && key.name == 'c') {
-
-		// get copy of call connections
-		const connections = connections_object.connections.slice();
-
-		// for each connection still open close it
-		await sync_helpers.async_for_each(connections, conn_object =>{
-			console.log('killing ssh connection...');
-			conn_object.connection.end();
-		});
-		// now we can exit
-		process.exit();
-	}
+/** 
+ * callback for watching keypress events. Collectes inputs as
+ * a string until enter is pressed then processes sitrng
+ * for different commands
+ * @param {string|null} ch the alphanuberic key presses default
+ * @param {object|null} key contains command keys press (ie enter)
+ */
+async function process_keypress(ch, key) {
 
 	// if spacebar then add else trim then add to key presses
 	if(ch && key && key.name == 'space') collected_keys += ch;
 	else if(ch) collected_keys += ch.trim();
 	else return;
+
+	// remove last char added to collected strings
+	if(key && key.name === 'backspace') {
+		collected_keys = collected_keys.slice(0, -1);
+	}
 
 	// if we hit return then lets see if we have a match
 	if(key && key.name === 'return') {
@@ -49,7 +46,8 @@ process.stdin.on('keypress', async function (ch, key) {
 		const key_presses = collected_keys;
 		collected_keys = '';
 
-		// repos
+
+		// check if trying to sync a currently watched repo
 		if ( config.local_paths[key_presses] ) {
 			local_path = `../${config.local_paths[key_presses]}`;
 			remote_path = `${config.remote_base}/${config.remote_paths[key_presses]}`;
@@ -60,82 +58,73 @@ process.stdin.on('keypress', async function (ch, key) {
 			local_path = `../${config.local_paths.teamdb_api}`;
 			remote_path = `${config.remote_base}/${config.remote_paths.teamdbapi}`;
 			repo_name = 'teamdbapi';
-
 		} else if ( key_presses.match(/^wam(_| )?api$/i) ) {
 			local_path = `../${config.local_paths.wam_api}`;
 			remote_path = `${config.remote_base}/${config.remote_paths.wam_api}`;
 			repo_name = 'wam_api';
-
 		} else if ( key_presses.match(/^upm(_| )?api$/i) ) {
 			local_path = `../${config.local_paths.upm_api}`;
 			remote_path = `${config.remote_base}/${config.remote_paths.upm_api}`;
 			repo_name = 'upm_api';
-
 		} else if ( key_presses.match(/^aqe(_| )?api$/i) ) {
 			local_path = `../${config.local_paths.aqe_api}`;
 			remote_path = `${config.remote_base}/${config.remote_paths.aqe_api}`;
 			repo_name = 'aqe_api';
-
 		} else if ( key_presses.match(/^ud(_| )?api$/i) ) {
 			local_path = `../${config.local_paths.ud_api}`;
 			remote_path = `${config.remote_base}/${config.remote_paths.ud_api}`;
 			repo_name = 'UD_api';
-
 		} else if ( key_presses.match(/^upm(_| )?api$/i) ) {
 			local_path = `../${config.local_paths.upm_api}`;
 			remote_path = `${config.remote_base}/${config.remote_paths.upm_api}`;
 			repo_name = 'upm_api';
 
-		// hypnotoads
+		// check for hypnotoad restarts
 		} else if ( key_presses.match(/^(hyp|hypno|hypnotoad|h)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.ud_api}`;
 			repo_name = 'UD_api';
-
 		} else if ( key_presses.match(/^(thyp|thypno|thypnotoad)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.teamdbapi}`; 
 			repo_name = 'teamdb'; 
-
 		} else if ( key_presses.match(/^(ahyp|ahypno|ahypnotoad)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.aqe_api}`;
 			repo_name = 'AQE';
-
 		} else if ( key_presses.match(/^(whyp|whypno|whypnotoad)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.wam_api}`;
 			repo_name = 'WAM';
-
 		} else if ( key_presses.match(/^(uhyp|uhypno|uhypnotoad)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.utm_api}`;
 			repo_name = 'UTM';
-
 		} else if ( key_presses.match(/^(phyp|phypno|phypnotoad)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.upm_api}`;
 			repo_name = 'UPM';
 
-		// apache
+
+		// apache restart?
 		} else if ( key_presses.match(/^(m|apache|pach)$/i) ) {
 			remote_commands.restart_apache()
 			.catch( message => console.log(message) );
 			return;
-
-		// apache and hypnotoad
+		// apache and hypnotoad restart?
 		} else if ( key_presses.match(/^(hm|mh)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.ud_api}`;
 			repo_name = 'UD_api';
 			remote_commands.restart_apache()
 			.catch( message => console.log(message) );
-
 		// reset modules folder
 		} else if ( key_presses === 'cmod' ) {
 			command = `find ${config.remote_base}/${config.remote_paths.modules} -type f -exec rm {} +`;
 			repo_name = 'modules';
-
-		// custom command
+		// custom command - cmd
 		} else if ( key_presses.match(/^cmd [a-zA-Z0-9_.-]+/i) ) {
 			command = key_presses.slice(4,key_presses.length);
 			repo_name = `custom command: ${command}`;
+		} else if (key_presses === 'logs') {
+				message = await logs.reset_logs();
 		}
 
 
+		// console type of command ran
 		let message;
 		try {
 			// sync repo
@@ -151,9 +140,6 @@ process.stdin.on('keypress', async function (ch, key) {
 
 			} else if (hypnotoad) {
 				message = await remote_commands.restart_hypnotoad(hypnotoad);
-
-			} else if ( key_presses === 'logs' ) {
-				message = await logs.reset_logs();
 
 			// else show help
 			} else {
@@ -184,15 +170,4 @@ example 'cmd ls' without quotes will return the dir list
 			console.log(`console_commands::${err}`);
 		}
 	}
-});
-
-// resume processes after watching input
-process.stdin.setRawMode(true);
-process.stdin.resume();
-
-// keep track of all key presses since last enter button pressed
-let key_presses = '';
-
-
-
-
+}
