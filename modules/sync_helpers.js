@@ -96,7 +96,9 @@ async function _process_synced_ojects(all_files_data){
 		const multiple = all_files_data.length == 1 ? '' : 's';
 		console.log(`${all_files_data.length} object${multiple} processed:`);
 		all_files_data.forEach(file => {
-			console.log(`	${file.action} -> ${file.remote_path}`);
+
+			const remote_path = file.remote_path.split('/').splice(4).join('/')
+			console.log(`	${file.action} -> ${remote_path}`);
 		})
 	}
 }
@@ -185,7 +187,9 @@ async function sync_file(connection, file_data){
 function _update_pulse(object_data) {
 	number_files_uploaded++;
 	gauge_object.show(object_data.action, number_files_uploaded/number_of_files);
-	gauge_object.pulse(object_data.remote_path);
+
+	const remote_path = object_data.remote_path.split('/').splice(4).join('/')
+	gauge_object.pulse(remote_path);
 }
 
 /**
