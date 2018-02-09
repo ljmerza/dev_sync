@@ -120,3 +120,11 @@ module.exports.transferRepoFormatPaths = function({files, local_path_folders, or
 		return {remote_path, local_path, base_path, repo, action: 'sync', sync_repo:true};
 	});
 }
+
+/**
+ * strips the base path of the remote path to console it once synced
+ * @param {string} remote_path
+ */
+module.exports.stripRemotePathForDisplay = function(remote_path){
+	return remote_path.split('/').splice(3).join('/');
+}
