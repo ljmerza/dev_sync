@@ -1,6 +1,0 @@
-Too late to run INIT block at /opt/includes/Tool_Box.pm line 2548.
-[Fri Feb 09 14:49:46 2018] [notice] Digest: generating secret for digest authentication ...
-[Fri Feb 09 14:49:46 2018] [notice] Digest: done
-PHP Warning:  Module 'ldap' already loaded in Unknown on line 0
-Too late to run INIT block at /opt/includes/Tool_Box.pm line 2548.
-[Fri Feb 09 14:49:48 2018] [notice] Apache/2.2.29 (Unix) PHP/5.6.8 mod_perl/2.0.9 Perl/v5.22.1 configured -- resuming normal operations

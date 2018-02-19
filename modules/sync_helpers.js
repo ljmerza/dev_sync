@@ -94,12 +94,14 @@ async function _process_synced_ojects(all_files_data){
 	// then log files synced
 	if(all_files_data.length > 0) {
 		const multiple = all_files_data.length == 1 ? '' : 's';
-		console.log(`${all_files_data.length} object${multiple} processed:`);
-		all_files_data.forEach(file => {
+		console.log(`${all_files_data.length} object${multiple} processed`);
 
-			const remote_path = formatting.stripRemotePathForDisplay(file.remote_path);
-			console.log(`	${file.action} -> ${remote_path}`);
-		})
+		// if not from a repo sync then show all files synced
+		if(all_files_data.length > 0 && !all_files_data[0].sync_repo){
+			all_files_data.forEach(file => {
+				console.log(`     :${stripRemotePathForDisplayfile(file.remote_path)}`);
+			})
+		}
 	}
 }
 
@@ -208,6 +210,8 @@ async function transfer_repo(original_local_path, original_remote_path, repo) {
 		// get all file path in local folder given
 		recursive(original_local_path, async (err, files) => {
 			if(err) { return reject(`transfer_repo::recursive::err: ${err}`); }
+
+			console.log(`Syncing ${files.length} files...`);
 
 			try {
 				// format local/remote file paths
