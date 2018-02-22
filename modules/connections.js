@@ -36,10 +36,15 @@ function ssh_connection_promise() {
 			port: config.port,
 			username: config.attuid,
 			privateKey: ppk_file
-		})
+		});
+
 		ssh_connection.on('ready', () => {
-			resolve(ssh_connection);
-		})
+			return resolve(ssh_connection);
+		});
+
+		ssh_connection.on('error', error => {
+			return reject(error);
+		});
 	});
 }
 
