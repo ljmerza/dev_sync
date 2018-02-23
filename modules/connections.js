@@ -59,7 +59,7 @@ async function sftp_connection_promise() {
 		try {
 			ssh_connection = await ssh_connection_promise();
 			ssh_connection.sftp( (err, sftp_connection) => {
-				if(err) { throw Error(`sftp::${err}`); }
+				if(err) { return reject(`sftp_connection_promise::sftp::${err}`); }
 
 				sftp_connection = _override_connection(sftp_connection);
 				return resolve({ sftp_connection, ssh_connection });

@@ -75,16 +75,17 @@ async function sftp_upload() {
 	changed_files = [];
 
 	return new Promise(async (resolve, reject) => {
-		// for each file, format paths
-		const modified_upload_files = upload_files.map( file => {
-			// create local/remote paths and get base path of file/folder
-			const [local_path, remote_path] = formatting.format_paths(file);
-			const base_path = ['addDir', 'unlinkDir'].includes(file.action) ? remote_path : path.dirname(remote_path);
-			// return new structure
-			return {local_path, remote_path, base_path, repo:file.repo, action:file.action};
-		});
-
 		try {
+
+			// for each file, format paths
+			const modified_upload_files = upload_files.map( file => {
+				// create local/remote paths and get base path of file/folder
+				const [local_path, remote_path] = formatting.format_paths(file);
+				const base_path = ['addDir', 'unlinkDir'].includes(file.action) ? remote_path : path.dirname(remote_path);
+				// return new structure
+				return {local_path, remote_path, base_path, repo:file.repo, action:file.action};
+			});
+
 			await sync_helpers.sync_objects(modified_upload_files);
 		} catch(err){
 			return reject(`sftp_upload::${err}`);
