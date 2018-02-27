@@ -39,11 +39,11 @@ function ssh_connection_promise() {
 		});
 
 		ssh_connection.on('ready', () => {
-			return resolve(ssh_connection);
+			resolve(ssh_connection);
 		});
 
 		ssh_connection.on('error', error => {
-			return reject(error);
+			reject(error);
 		});
 	});
 }
