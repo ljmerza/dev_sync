@@ -70,8 +70,8 @@ async function sync_objects(all_files_data) {
 
 			} catch(error){
 				// close any open connections
-				if(connection.ssh_connection) connection.ssh_connection.end();
-				if(connection.sftp_connection) connection.sftp_connection.end();
+				if(connection && connection.ssh_connection) connection.ssh_connection.end();
+				if(connection && connection.sftp_connection) connection.sftp_connection.end();
 
 				// hide gauge and return error
 				gauge_object.hide();
@@ -99,7 +99,7 @@ async function _process_synced_ojects(all_files_data){
 		// if not from a repo sync then show all files synced
 		if(all_files_data.length > 0 && !all_files_data[0].sync_repo){
 			all_files_data.forEach(file => {
-				console.log(`     ${formatting.stripRemotePathForDisplay(file.remote_path)}`);
+				console.log(    `${file.action} -> ${formatting.stripRemotePathForDisplay(file.remote_path)}`);
 			})
 		}
 	}
