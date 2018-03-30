@@ -61,10 +61,15 @@ async function sync_objects(all_files_data) {
 				// close connections
 				connection.ssh_connection.end();
 				connection.sftp_connection.end();
+				gauge_object.hide();
 
+				// set permissions
+				await remote_commands.update_permissions(file_chunk);
+				
 				// if we have processed all chunks then clean up
 				if(++processed_chunks === number_of_chunks){
 					_process_synced_ojects(all_files_data);
+					gauge_object.hide();
 					return resolve();
 				};
 
@@ -82,15 +87,10 @@ async function sync_objects(all_files_data) {
 }
 
 /**
- * hides gauge, sets remote file permissions, logs files processed
+ * logs files processed
  * @param {object} all_files_data
  */
 async function _process_synced_ojects(all_files_data){
-
-	// hide gauge and set permissions
-	gauge_object.hide();
-	await remote_commands.update_permissions(all_files_data);
-
 	// then log files synced
 	if(all_files_data.length > 0) {
 		const multiple = all_files_data.length == 1 ? '' : 's';
