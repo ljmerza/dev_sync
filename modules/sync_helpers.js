@@ -23,6 +23,14 @@ Object.defineProperty(Array.prototype, 'chunk', {
 	}
 });
 
+/**
+ * resets the gauge animation
+ */
+async function reset_gauge(){
+	if(gauge_object && gauge_object.hide) {
+		gauge_object.hide();
+	}
+}
 
 /**
  * syncs all files to server

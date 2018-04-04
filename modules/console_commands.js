@@ -132,7 +132,12 @@ process.stdin.on('keypress', async function (ch, key) {
 		// custom command
 		} else if ( key_presses.match(/^cmd [a-zA-Z0-9_.-]+/i) ) {
 			command = key_presses.slice(4,key_presses.length);
-			repo_name = `custom command: ${command}`;
+			message = `custom command: ${command}`;
+
+		// reset gauge
+		} else if ( key_presses.match(/^reset$/i) ) {
+			sync_helpers.reset_gauge();
+			return;
 		}
 
 
@@ -156,7 +161,7 @@ process.stdin.on('keypress', async function (ch, key) {
 				message = await logs.reset_logs();
 
 			// else show help
-			} else {
+			} else if (!message) {
 				message = `
 sync repo to server by typing the repo name and pressing enter. Supported repos:
 		ud, ud_api, wam,aqe, tqi, modules, taskamster, teamdb, 
