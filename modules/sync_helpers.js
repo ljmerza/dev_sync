@@ -246,4 +246,4 @@ async function async_for_each(array, callback) {
 	}
 }
 
-module.exports = {sync_objects, transfer_repo, async_for_each};
+module.exports = {sync_objects, transfer_repo, async_for_each, reset_gauge};
