@@ -1,12 +1,12 @@
 const Promise = require("bluebird");
 const fs = require('fs');
 const streamEqual = require('stream-equal');
-const exec = require('node-exec-promise').exec;
+const {exec} = require('node-exec-promise');
 
 const config = require('./../config');
-const connection_object = require("./connections");
-const remote_commands = require('./remote_commands');
-const sync_helpers = require("./sync_helpers");
+import {sftp_connection_promise} from './connections';
+import {execute_remote_command} from './remote_commands';
+import {compare_files, async_for_each} from './sync_helpers';
 
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
@@ -33,7 +33,7 @@ async function _sync_logs(connections) {
 		let sync_results = [];
 
 		// check for files syncs
-		await sync_helpers.async_for_each(log_files, async log_file => {
+		await async_for_each(log_files, async log_file => {
 			try {
 				let message = await _sync_a_log(log_file, connections);
 				sync_results.push(message);
@@ -70,39 +70,25 @@ async function _sync_a_log(file, connections) {
 
 		try {
 			// create remote file if doesn't exist
-			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
-			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+			await execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
+			await execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 
 			// create local file if doesnt exist
 			if (!fs.existsSync(local_file_name)) {
 				await exec(`touch ${local_file_name}`);
 			}
 
-			// try to create read/write streams for local/remote files
-			try {
-				read_stream_local = fs.createReadStream(local_file_name);
-				read_stream_remote = sftp_connection.createReadStream(`${config.remote_base}/${relative_file_path}/${remote_file_name}`);
-			} catch(err) {
-				return reject(`_sync_a_log::${err}`);
-			}
-			
-			// compare files to see if we need to sync them
-			streamEqual(read_stream_local, read_stream_remote, async (err, equal) => {
-				if(err) { return reject(`_sync_a_log::${err}`); }
-				
-				// if not equal then get remote file and sync to local
-				if(!equal){
-					sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
-						if(err) { return reject(`_sync_a_log::${err}`); }
+			// see if we need a log sync
+			const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
+			const need_sync = await compare_files(local_file_name, absolute_remote_path, sftp_connection);
 
-						// log that we just synced and resolve promise
-						console.log(`updated local log file ${local_file_name}`);
-						return resolve(`updated local log file ${local_file_name}`);
-					});
-				} else {
-					return resolve(`local log file ${local_file_name} already synced`);
-				}
-			});	
+			// if we need a log sync then sync it from remote
+			if(need_sync){
+				sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
+					if(err) { return reject(`_sync_a_log::${err}`); }
+					return resolve(`updated local log file ${local_file_name}`);
+				});
+			}
 		}
 		catch(err){
 			return reject(`_sync_a_log::${err}`);
@@ -130,7 +116,7 @@ async function sync_logs_interval() {
 
 				// try to sync all logs
 				try {
-					connections = await connection_object.sftp_connection_promise();
+					connections = await sftp_connection_promise();
 					const messages = await _sync_logs(connections);
 					// console.log(messages);
 				} catch(err){
@@ -165,7 +151,7 @@ async function reset_logs() {
 	// try to reset remote logs
 	return new Promise(async (resolve, reject) => {
 		try {
-			await remote_commands.execute_remote_command(command);
+			await execute_remote_command(command);
 			return resolve('logs reset');
 		} catch(err){
 			return reject(`reset_logs::${err}`);

@@ -1,11 +1,14 @@
 const connections_object = require("./connections");
 const formatting = require('./formatting');
 const remote_commands = require('./remote_commands');
+import { close_connections } from './sync_hlpers'
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
 const path = require('path');
 const Gauge = require("gauge");
+const streamEqual = require('stream-equal');
+const fs = require('fs');
 
 let gauge_object;
 let number_of_files = 0;
@@ -55,21 +58,19 @@ async function sync_objects(all_files_data) {
 
 		file_chunks.forEach(async file_chunk => {
 
-			let connection;
+			let connections;
 			try {
-				connection = await connections_object.sftp_connection_promise();
+				connections = await connections_object.sftp_connection_promise();
 
 				await async_for_each(file_chunk, async file => {
 					// if git file then ignore, sync file, update pulse animation
 					if(/\.git/.test(file.local_path)) return;
-					synced_files_promises.push(await sync_object(connection, file));
+					synced_files_promises.push(await sync_object(connections, file));
 					_update_pulse(file);
 				});
 
-				// close connections
-				connection.ssh_connection.end();
-				connection.sftp_connection.end();
-				gauge_object.hide();
+				close_connections(connections);
+				reset_gauge();
 
 				// set permissions
 				await remote_commands.update_permissions(file_chunk);
@@ -82,12 +83,8 @@ async function sync_objects(all_files_data) {
 				};
 
 			} catch(error){
-				// close any open connections
-				if(connection && connection.ssh_connection) connection.ssh_connection.end();
-				if(connection && connection.sftp_connection) connection.sftp_connection.end();
-
-				// hide gauge and return error
-				gauge_object.hide();
+				close_connections(connections);
+				reset_gauge();
 				return reject(`sync_objects::${error}`); 
 			}
 		});
@@ -182,12 +179,46 @@ async function sync_file(connection, file_data){
 	// if we are syncing repo make folder first
 	await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
 
+	
+
+	
+
 	return new Promise(async (resolve, reject) => {
 		connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
 			if(err) return reject(`sync_file::${err}::${file_data.local_path}`);
 			return resolve(file_data.remote_path);
 		});
 	});
+}
+
+/**
+ * compares a local and remote file
+ * @param {string} absolute_local_path 
+ * @param {string} absolute_remote_path 
+ * @param {string} sftp_connection 
+ * @return {boolean} are the files the same?
+ */
+async function compare_files(absolute_local_path, absolute_remote_path, sftp_connection){
+	return new Promise((resolve, reject) => {
+		let read_stream_local;
+		let read_stream_remote;
+
+		if(!sftp_connection){
+			{sftp_connection} = await connections_object.sftp_connection_promise();
+		}
+
+		try {
+			read_stream_local = fs.createReadStream(absolute_local_path);
+			read_stream_remote = sftp_connection.createReadStream(absolute_remote_path);
+		} catch(err) {
+			return reject(`_sync_a_log::${err}`);
+		}
+		
+		// compare files to see if we need to sync them
+		streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
+			if(err) { return reject(`_sync_a_log::${err}`); }
+			return resolve(equal);			
+		}
 }
 
 /**
@@ -246,4 +277,10 @@ async function async_for_each(array, callback) {
 	}
 }
 
-module.exports = {sync_objects, transfer_repo, async_for_each, reset_gauge};
+module.exports = {
+	sync_objects,
+	transfer_repo,
+	async_for_each,
+	reset_gauge,
+	compare_files
+};

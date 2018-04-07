@@ -105,4 +105,20 @@ function _override_connection(connection){
 	return connection;
 }
 
-module.exports = {ssh_connection_promise, sftp_connection_promise, connections};
+/**
+ * ends any passed in connections
+ */
+async function close_connections(connection){
+
+	if(connection && connection.ssh_connection) connection.ssh_connection.end();
+	if(connection && connection.sftp_connection) connection.sftp_connection.end();
+	if(connection && connection.end) connection.end();
+
+} 
+
+module.exports = {
+	ssh_connection_promise, 
+	sftp_connection_promise, 
+	connections,
+	close_connections
+};
