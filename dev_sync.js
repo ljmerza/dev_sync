@@ -21,36 +21,42 @@ let changed_files = []; // array of changed files than need to be uploaded
 // create a default timeout to clear
 let current_timer = setTimeout(()=>{},0);
 
-console.log('watching the following directories:');
-
-// format dirs to relative path of this file then create watcher
-Object.keys(config.local_paths)
-.map( repo => { return {dir: `../${config.local_paths[repo]}/`, repo} })
-.forEach( element => {
-
-	chokidar.watch(path.join(__dirname, element.dir), {
-		ignored: /\.git/,
-		persistent: true,
-		ignoreInitial: true,
-	})
-	.on('add', path => add_to_sync(path, 'add', element.repo))
-	.on('change', path => add_to_sync(path, 'change', element.repo))
-	.on('unlink', path => add_to_sync(path, 'unlink', element.repo))
-	.on('addDir', path => add_to_sync(path, 'addDir', element.repo))
-	.on('unlinkDir', path => add_to_sync(path, 'unlinkDir', element.repo))
-	.on('error', error => console.log('watcher ERROR: ', error))
-	.on('ready', () => console.log('	', element.dir));
-
-
-
-	function add_to_sync(local_path, action, repo){
-		changed_files.push({local_path, repo, action});
-		sync_files_timer();
-	}
-});
-
-// start log sync
+// watch_repos();
 logs.sync_logs_interval();
+
+
+
+/**
+ * format dirs to relative path of this file then create watcher
+ */
+function watch_repos() {
+	console.log('watching the following directories:');
+
+	Object.keys(config.local_paths)
+	.map( repo => { return {dir: `../${config.local_paths[repo]}/`, repo} })
+	.forEach( element => {
+
+		chokidar.watch(path.join(__dirname, element.dir), {
+			ignored: /\.git/,
+			persistent: true,
+			ignoreInitial: true,
+		})
+		.on('add', path => add_to_sync(path, 'add', element.repo))
+		.on('change', path => add_to_sync(path, 'change', element.repo))
+		.on('unlink', path => add_to_sync(path, 'unlink', element.repo))
+		.on('addDir', path => add_to_sync(path, 'addDir', element.repo))
+		.on('unlinkDir', path => add_to_sync(path, 'unlinkDir', element.repo))
+		.on('error', error => console.log('watcher ERROR: ', error))
+		.on('ready', () => console.log('	', element.dir));
+
+
+
+		function add_to_sync(local_path, action, repo){
+			changed_files.push({local_path, repo, action});
+			sync_files_timer();
+		}
+	});
+}
 
 /**
 */
@@ -63,12 +69,9 @@ function sync_files_timer() {
 	}, 1000);
 }
 
-
-
-/*
-*	function sftp_upload()
-* 		uploads file to dev server, sets permissions, 
-*/
+/**
+ * uploads file to dev server, sets permissions, 
+ */
 async function sftp_upload() {
 	// copy array and empty old one
 	const upload_files = changed_files.slice();
@@ -94,9 +97,9 @@ async function sftp_upload() {
 }
 
 
-/*
-* catch all errors here
-*/
+/**
+ * catch all errors here
+ */
 process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err);
 });

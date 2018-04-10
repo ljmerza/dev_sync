@@ -27,112 +27,49 @@ let log_files = [
 *	function _sync_logs(connections)
 * 		syncs log files from server to host
 */
-async function _sync_logs(connections) {
+async function _sync_logs(formatted_log_files) {
 	return new Promise( async (resolve, reject) => {
-		
-		let sync_results = [];
-
-		// check for files syncs
-		await sync_helpers.async_for_each(log_files, async log_file => {
-			try {
-				let message = await _sync_a_log(log_file, connections);
-				sync_results.push(message);
-			} catch(err){
-				return reject(`_sync_logs::${err}`);
-			}
-		});
-
-		return resolve(sync_results);
+		try {
+			const result = await sync_helpers.async_sync(formatted_log_files, 4);
+			return resolve(result);
+		} catch(err){
+			return reject(`_sync_logs::${err}`);
+		}
 	});
 }
 
+/**
+ * download log files periodically
+ */
+async function sync_logs_interval() {
+	let check_sync = true; // only allow one sync operation at a time
 
-
-
-/*
-*	function _sync_a_log(file, connections)
-* 		syncs a log file from server to host
-*/
-async function _sync_a_log(file, connections) {
-
-	const sftp_connection = connections.sftp_connection;
-	const ssh_connection = connections.ssh_connection;
-
-	return new Promise( async (resolve, reject) => {
-
+	const formatted_log_files = log_files.map(file => {
 		const relative_file_path = file[0];
 		const remote_file_name = file[1];
 		const local_file_name = file[2];
-		
-		// get local and remote files to compare
-		let read_stream_local;
-		let read_stream_remote;
-
-		try {
-			// create remote file if doesn't exist
-			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
-			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
-
-			// create local file if doesnt exist
-			if (!fs.existsSync(local_file_name)) {
-				await exec(`touch ${local_file_name}`);
-			}
-
-			// see if we need a log sync
-			const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
-			const need_sync = await sync_helpers.compare_files(local_file_name, absolute_remote_path, sftp_connection);
-
-			// if we need a log sync then sync it from remote
-			if(need_sync){
-				sftp_connection.fastGet(`${config.remote_base}/${relative_file_path}/${remote_file_name}`, local_file_name, err => {
-					if(err) { return reject(`_sync_a_log::${err}`); }
-					return resolve(`updated local log file ${local_file_name}`);
-				});
-			}
-		}
-		catch(err){
-			return reject(`_sync_a_log::${err}`);
-		}		
+		const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
+		return {local_file_name, absolute_remote_path, relative_file_path}
 	});
-}
 
-
-/*
-*	function syncLogsInterval()
-* 		download log files periodically
-*/
-async function sync_logs_interval() {
-	let syncing_done = true;
-
-	setInterval( async () => {
+	setInterval(async () => {
 		try {
-			// console.log('syncing_done: ', syncing_done);
-			// if last syncing is done then sync again else do nothing
-			if(syncing_done){
+			if(!check_sync) return;
 
-				// don't allow any other syncing going on
-				syncing_done = false;
-				let conns; 
+			check_sync = false;
+			console.log('check_sync: ', check_sync);
+			const messages = await _sync_logs(formatted_log_files);
+			check_sync = true;
 
-				// try to sync all logs
-				try {
-					conns = await connections.sftp_connection_promise();
-					const messages = await _sync_logs(connections);
-					// console.log(messages);
-				} catch(err){
-					console.log(`syncLogsInterval::${err}`)
-				}
+			// log any sync messages
+			messages
+				.filter(message => message)
+				.forEach(message => console.log(message));
 
-				syncing_done = true;
-				conns.ssh_connection.end();
-				conns.sftp_connection.end();
-			}
 		} catch(err){
-			// always reset sync logs and display message
-			syncing_done = true;
+			check_sync = true;
 			console.log('sync_logs_interval::', err);
 		}
-
 	}, 200);
 };
 

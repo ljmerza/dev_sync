@@ -116,17 +116,14 @@ async function execute_remote_command(command, connection) {
 
 			// once uploaded array is empty then execute command to reset permissions
 			connection.exec(command, (err, stream) => {
-				if(err){
-					if(connection && close_connection) connection.end();
-					return reject(`execute_remote_command::exec::${err}::`); 
-				}
+				if(err) throw err;
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {
 					// on data received - process it
 					data = formatting.formatServerStdOut(data);
-					if(command == 'hostname') console.log('\nConnected with:', data);
-					else console.log(data);
+					if(command === 'hostname') data = `\nConnected with: ${data}`;
+					console.log(data);
 
 				}).stderr.on('data', error => {
 					// on error data received process it - dont show certain errors
@@ -136,13 +133,12 @@ async function execute_remote_command(command, connection) {
 					}
 
 	  			}).on('close', () => { 
-	  				// on close disconnect
-					if(connection && close_connection) connection.end();
+					if(close_connection) connections_object.close_connections(connection);
 					return resolve(); 
 				});
 			});
 		} catch(err) {
-			if(connection && close_connection) connection.end();
+			if(close_connection) connections_object.close_connections(connection);
 			return reject(`execute_remote_command::${err}`);
 		}
 	});

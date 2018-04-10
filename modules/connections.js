@@ -48,6 +48,21 @@ function ssh_connection_promise() {
 	});
 }
 
+/**
+ *
+ */
+async function check_sftp_connection(sftp_connection){
+	return new Promise(async (resolve, reject) => {
+		try {
+			if(!sftp_connection) return resolve(sftp_connection);
+			const conns = await sftp_connection_promise();
+			return resolve(conns.sftp_connection);
+		} catch(err){
+			return reject(`check_sftp_connection::${err}`);
+		}
+	})
+}
+
 
 /*
 *	sftp_connection_promise()
@@ -59,7 +74,7 @@ async function sftp_connection_promise() {
 		try {
 			ssh_connection = await ssh_connection_promise();
 			ssh_connection.sftp( (err, sftp_connection) => {
-				if(err) { return reject(`sftp_connection_promise::sftp::${err}`); }
+				if(err) throw err;
 
 				sftp_connection = _override_connection(sftp_connection);
 				return resolve({ sftp_connection, ssh_connection });
@@ -109,16 +124,15 @@ function _override_connection(connection){
  * ends any passed in connections
  */
 async function close_connections(connection){
-
 	if(connection && connection.ssh_connection) connection.ssh_connection.end();
 	if(connection && connection.sftp_connection) connection.sftp_connection.end();
 	if(connection && connection.end) connection.end();
-
 } 
 
 module.exports = {
 	ssh_connection_promise, 
 	sftp_connection_promise, 
 	connections,
-	close_connections
+	close_connections,
+	check_sftp_connection
 };
