@@ -171,7 +171,7 @@ async function sync_file(file_data, connections){
  */
 async function needs_sync(absolute_local_path, absolute_remote_path, connections){
 	return new Promise(async (resolve, reject) => {
-		let close_connecton = !connections;
+		let close_connection = !connections;
 		try {
 			connections = await connect_module.check_sftp_connection(connections);
 
@@ -259,17 +259,17 @@ async function are_streams_equal(read_stream_local, read_stream_remote){
  */
 async function get_remote_file(absolute_remote_path, local_file_name, connections){
 	return new Promise(async (resolve, reject) => {
+		let close_connection = !connections;
 		try {
-			let close_connection = !sftp_connection;
-			connections = await connect_module.check_sftp_connection(sftp_connection, 'get_remote_file');
+			connections = await connect_module.check_sftp_connection(connections, 'get_remote_file');
 
 			connections.sftp_connection.fastGet(absolute_remote_path, local_file_name, err => {
 				if(err) return reject(`get_remote_file::${err}`);
-				if(close_connection) connections.close_connections(connections);
-				return resolve(`	synced ${local_file_name} from remote`);
+				if(close_connection) connect_module.close_connections(connections);
+				return resolve(`synced ${local_file_name} from remote`);
 			});
 		} catch(err){
-			if(close_connection) connections.close_connections(connections);
+			if(close_connection) connect_module.close_connections(connections);
 			return reject(`get_remote_file::${err}`);
 		}
 	});
@@ -285,12 +285,12 @@ async function sync_remote_to_local(file, connections, from_name='') {
 		const {absolute_remote_path, local_file_name, relative_file_path} = file;
 
 		let close_connections = !connections;
-		connections = connect_module.check_both_connections(connections, 'sync_remote_to_local');
+		connections = await connect_module.check_both_connections(connections, 'sync_remote_to_local');
 
 		try {
 			// try to create remote folder/file if doesn't exist
-			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`, ssh_connection, `${from_name}::sync_remote_to_local`); 
-			await remote_commands.execute_remote_command(`touch ${absolute_remote_path}`, ssh_connection, `${from_name}::sync_remote_to_local`);
+			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`, connections, `${from_name}::sync_remote_to_local`); 
+			await remote_commands.execute_remote_command(`touch ${absolute_remote_path}`, connections, `${from_name}::sync_remote_to_local`);
 
 			// create local file if doesn't exist
 			if (!fs.existsSync(local_file_name)) {
@@ -302,11 +302,11 @@ async function sync_remote_to_local(file, connections, from_name='') {
 			const need_sync = await needs_sync(local_file_name, absolute_remote_path, connections);
 			if(need_sync) synced_message = await get_remote_file(absolute_remote_path, local_file_name, connections);
 
-			if(close_connections) connections.close_connections(connections);
+			if(close_connections) connect_module.close_connections(connections);
 			return resolve(synced_message);
 
 		} catch(err){
-			if(close_connections) connections.close_connections(connections);
+			if(close_connections) connect_module.close_connections(connections);
 			return reject(`sync_remote_to_local::${err}`);
 		}	
 	});
@@ -321,6 +321,7 @@ async function sync_remote_to_local(file, connections, from_name='') {
 async function async_sync(files, chunk_length, sync_function, from_name){
 	return new Promise(async (resolve, reject) => {
 		let connections = await connect_module.sftp_connection_promise('async_sync');
+
 		try {
 			let sync_results = [];
 			let [file_chunks, number_of_chunks, processed_chunks] = chunk_files(files, 5);
@@ -332,13 +333,14 @@ async function async_sync(files, chunk_length, sync_function, from_name){
 				});
 
 				if(++processed_chunks === number_of_chunks){
-					if(close_connection) connect_module.close_connections(connections);
+					connect_module.close_connections(connections);
 					return resolve(sync_results);
 				};
 			});
 
 		} catch(err) {
-			if(close_connection) connect_module.close_connections(connections);
+			console.log('err: ', err);
+			connect_module.close_connections(connections);
 			return reject(`async_sync::${err}`);
 		}
 	});

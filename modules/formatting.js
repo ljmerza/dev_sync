@@ -93,7 +93,7 @@ module.exports.format_files = function(all_files_data) {
  * @param {string} 
  */
 module.exports.formatServerStdOut = function(data){
-	data = `- ${data}`;
+	data = `${data}`;
 	data = data.replace(/(\r\n|\n|\r)/gm,"");
 	return data;
 }

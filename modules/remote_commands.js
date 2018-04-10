@@ -105,6 +105,7 @@ async function execute_remote_command(command, connections, from_name='execute_r
 		let close_connection = !connections;
 		connections = await connect_module.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
 
+
 		try {
 			// once uploaded array is empty then execute command to reset permissions
 			connections.ssh_connection.exec(command, (err, stream) => {
