@@ -4,9 +4,9 @@ const streamEqual = require('stream-equal');
 const {exec} = require('node-exec-promise');
 
 const config = require('./../config');
-import {sftp_connection_promise} from './connections';
-import {execute_remote_command} from './remote_commands';
-import {compare_files, async_for_each} from './sync_helpers';
+const connections = require('./connections');
+const remote_commands = require('./remote_commands');
+const sync_helpers = require('./sync_helpers');
 
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
@@ -33,7 +33,7 @@ async function _sync_logs(connections) {
 		let sync_results = [];
 
 		// check for files syncs
-		await async_for_each(log_files, async log_file => {
+		await sync_helpers.async_for_each(log_files, async log_file => {
 			try {
 				let message = await _sync_a_log(log_file, connections);
 				sync_results.push(message);
@@ -70,8 +70,8 @@ async function _sync_a_log(file, connections) {
 
 		try {
 			// create remote file if doesn't exist
-			await execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
-			await execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
+			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
+			await remote_commands.execute_remote_command(`touch ${config.remote_base}/${relative_file_path}/${remote_file_name}`);
 
 			// create local file if doesnt exist
 			if (!fs.existsSync(local_file_name)) {
@@ -80,7 +80,7 @@ async function _sync_a_log(file, connections) {
 
 			// see if we need a log sync
 			const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
-			const need_sync = await compare_files(local_file_name, absolute_remote_path, sftp_connection);
+			const need_sync = await sync_helpers.compare_files(local_file_name, absolute_remote_path, sftp_connection);
 
 			// if we need a log sync then sync it from remote
 			if(need_sync){
@@ -112,11 +112,11 @@ async function sync_logs_interval() {
 
 				// don't allow any other syncing going on
 				syncing_done = false;
-				let connections; 
+				let conns; 
 
 				// try to sync all logs
 				try {
-					connections = await sftp_connection_promise();
+					conns = await connections.sftp_connection_promise();
 					const messages = await _sync_logs(connections);
 					// console.log(messages);
 				} catch(err){
@@ -124,8 +124,8 @@ async function sync_logs_interval() {
 				}
 
 				syncing_done = true;
-				connections.ssh_connection.end();
-				connections.sftp_connection.end();
+				conns.ssh_connection.end();
+				conns.sftp_connection.end();
 			}
 		} catch(err){
 			// always reset sync logs and display message
@@ -151,7 +151,7 @@ async function reset_logs() {
 	// try to reset remote logs
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(command);
+			await remote_commands.execute_remote_command(command);
 			return resolve('logs reset');
 		} catch(err){
 			return reject(`reset_logs::${err}`);

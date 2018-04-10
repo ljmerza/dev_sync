@@ -1,7 +1,7 @@
 const connections_object = require("./connections");
 const formatting = require('./formatting');
 const remote_commands = require('./remote_commands');
-import { close_connections } from './sync_hlpers'
+const sync_helpers = require('./sync_helpers');
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
@@ -69,7 +69,7 @@ async function sync_objects(all_files_data) {
 					_update_pulse(file);
 				});
 
-				close_connections(connections);
+				sync_helpers.close_connections(connections);
 				reset_gauge();
 
 				// set permissions
@@ -83,7 +83,7 @@ async function sync_objects(all_files_data) {
 				};
 
 			} catch(error){
-				close_connections(connections);
+				sync_helpers.close_connections(connections);
 				reset_gauge();
 				return reject(`sync_objects::${error}`); 
 			}
@@ -199,12 +199,12 @@ async function sync_file(connection, file_data){
  * @return {boolean} are the files the same?
  */
 async function compare_files(absolute_local_path, absolute_remote_path, sftp_connection){
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		let read_stream_local;
 		let read_stream_remote;
 
 		if(!sftp_connection){
-			{sftp_connection} = await connections_object.sftp_connection_promise();
+			sftp_connection = await connections_object.sftp_connection_promise();
 		}
 
 		try {
@@ -218,7 +218,8 @@ async function compare_files(absolute_local_path, absolute_remote_path, sftp_con
 		streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
 			if(err) { return reject(`_sync_a_log::${err}`); }
 			return resolve(equal);			
-		}
+		});
+	});
 }
 
 /**
