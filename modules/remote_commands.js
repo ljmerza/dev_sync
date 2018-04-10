@@ -108,7 +108,7 @@ async function execute_remote_command(command, connections, from_name='execute_r
 		try {
 			// once uploaded array is empty then execute command to reset permissions
 			connections.ssh_connection.exec(command, (err, stream) => {
-				if(err) throw err;
+				if(err) return reject(`execute_remote_command::${err}`);
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {

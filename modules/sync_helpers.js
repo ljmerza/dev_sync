@@ -152,7 +152,7 @@ async function sync_file(file_data, connections){
 			connections = await connections_object.check_both_connections(connections);
 			await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
 			connections.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
-				if(err) throw err;
+				if(err) return reject(`sync_file::${err}`);
 				if(close_connection) connections_object.close_connections(connections);
 				return resolve(file_data.remote_path);
 			});
@@ -213,7 +213,7 @@ async function transfer_repo(original_local_path, original_remote_path, repo) {
 		try {
 			// get all file path in local folder given
 			recursive(original_local_path, async (err, files) => {
-				if(err) throw err;
+				if(err) return reject(`transfer_repo::${err}`);
 				console.log(`Syncing ${files.length} files...`);
 
 				let local_path_folders = original_local_path.split('/');
@@ -245,7 +245,7 @@ async function are_streams_equal(read_stream_local, read_stream_remote){
 	return new Promise(async (resolve, reject) => {
 		try {
 			streamEqual(read_stream_local, read_stream_remote, (err, equal) => {
-				if(err) throw err;
+				if(err) return reject(`are_streams_equal::${err}`);
 				return resolve(equal);	
 			});
 		} catch(err){
@@ -265,7 +265,7 @@ async function get_remote_file(absolute_remote_path, local_file_name, connection
 			connections = await connections_object.check_sftp_connection(sftp_connection, 'get_remote_file');
 
 			connections.sftp_connection.fastGet(absolute_remote_path, local_file_name, err => {
-				if(err) throw err;
+				if(err) return reject(`get_remote_file::${err}`);
 				if(close_connection) connections.close_connections(connections);
 				return resolve(`	synced ${local_file_name} from remote`);
 			});

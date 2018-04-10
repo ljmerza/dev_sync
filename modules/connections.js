@@ -96,7 +96,7 @@ async function sftp_connection_promise(from_name='sftp_connection_promise') {
 		try {
 			connections = await ssh_connection_promise(`${from_name}::sftp_connection_promise`);
 			connections.ssh_connection.sftp( (err, sftp_connection) => {
-				if(err) throw err;
+				if(err) return reject(`sftp_connection_promise::${err}`);
 
 				connections.sftp_connection = _override_connection(sftp_connection, true, from_name);
 				return resolve(connections);
@@ -119,6 +119,13 @@ function _override_connection(connection, is_sftp=false, from_name='_override_co
 	// create symbol and save on connections array
 	const symbol = Symbol();
 	connection.symbol = symbol;
+
+	// make sure we don't have more than 5 connections
+	if(connections.length > 5) {
+		connection.end();
+		throw 'Too many connections!';
+	}
+
 	connections.push({symbol, connection});
 	connection.is_sftp = is_sftp;
 	connection.from_name = from_name;
