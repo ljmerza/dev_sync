@@ -1,4 +1,4 @@
-const connections_object = require("./connections");
+const connect_module = require("./connections");
 const formatting = require('./formatting');
 
 const Promise = require("bluebird");
@@ -14,7 +14,7 @@ execute_remote_command('hostname', null, 'hostname');
 async function make_remote_directory(base_path, ssh_connection, from_name) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			ssh_connection = await connections_object.check_ssh_connection(ssh_connection, `${from_name}::make_remote_directory`);
+			ssh_connection = await connect_module.check_ssh_connection(ssh_connection, `${from_name}::make_remote_directory`);
 			await execute_remote_command(`mkdir -p ${base_path}`, ssh_connection, `${from_name}::make_remote_directory`);
 		} catch(err){
 			return reject(`make_remote_directory::${err}`);
@@ -103,7 +103,7 @@ async function update_permissions(uploaded_files, from_name) {
 async function execute_remote_command(command, connections, from_name='execute_remote_command') {
 	return new Promise(async (resolve, reject) => {
 		let close_connection = !connections;
-		connections = await connections_object.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
+		connections = await connect_module.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
 
 		try {
 			// once uploaded array is empty then execute command to reset permissions
@@ -125,12 +125,12 @@ async function execute_remote_command(command, connections, from_name='execute_r
 					}
 
 	  			}).on('close', () => { 
-					if(close_connection) connections_object.close_connections(connections);
+					if(close_connection) connect_module.close_connections(connections);
 					return resolve(); 
 				});
 			});
 		} catch(err) {
-			if(close_connection) connections_object.close_connections(connections);
+			if(close_connection) connect_module.close_connections(connections);
 			return reject(`execute_remote_command::${err}`);
 		}
 	});

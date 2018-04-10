@@ -3,7 +3,7 @@ const keypress = require('keypress');
 const Promise = require("bluebird");
 
 const config = require('./../config');
-const connections_object = require("./connections");
+const connect_module = require("./connections");
 const logs = require('./logs');
 const remote_commands = require('./remote_commands');
 const sync_helpers = require('./sync_helpers');
@@ -18,17 +18,7 @@ process.stdin.on('keypress', async function (ch, key) {
 
 	// kill process if send SIGTERM
 	if (key && key.ctrl && key.name == 'c') {
-
-		// get copy of call connections
-		const connections = connections_object.connections.slice();
-
-		// for each connection still open close it
-		await sync_helpers.async_for_each(connections, conn_object =>{
-			console.log('killing ssh connection...');
-			conn_object.connection.end();
-		});
-		// now we can exit
-		process.exit();
+		return await connect_module.kill_all_connections();
 	}
 
 	// if spacebar then add else trim then add to key presses

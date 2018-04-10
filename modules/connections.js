@@ -1,8 +1,6 @@
 const SSH2 = require('ssh2');
 const fs = require('fs');
 const config = require('./../config');
-
-
 let ppk_file;
 
 // try to get PPK file
@@ -25,10 +23,10 @@ function Client(from_name='Client'){
 *	ssh_connection_promise()
 * 		return a ssh connection promise
 */
-function ssh_connection_promise(from_name='ssh_connection_promise') {
-	return new Promise( (resolve, reject) => {
+async function ssh_connection_promise(from_name='ssh_connection_promise') {
+	return new Promise(async (resolve, reject) => {
 		// create ssh object
-		let ssh_connection = new Client(from_name);
+		let ssh_connection = await new Client(from_name);
 
 		// connect to server
 		ssh_connection.connect({
@@ -114,27 +112,26 @@ async function sftp_connection_promise(from_name='sftp_connection_promise') {
 *		to global connections array to keep track of open connections
 *		overrides the end function to update the open connections array
 */
-function _override_connection(connection, is_sftp=false, from_name='_override_connection'){
+async function _override_connection(connection, is_sftp=false, from_name='_override_connection'){
 
 	// create symbol and save on connections array
 	const symbol = Symbol();
 	connection.symbol = symbol;
-
+	connections.push({symbol, connection});
+	
 	// make sure we don't have more than 5 connections
 	if(connections.length > 5) {
-		connection.end();
-		throw 'Too many connections!';
+		console.log('Too Many Connections!');
+		return await kill_all_connections();
 	}
 
-	connections.push({symbol, connection});
+	// save internal properties and log what we are doing
 	connection.is_sftp = is_sftp;
 	connection.from_name = from_name;
 	console.log(`open connection for ${is_sftp ? 'SFTP' : 'SSH'} from ${from_name}...`);
 
-	// save old end function
-	const end_connection = connection.end;
-
 	// override end function
+	const end_connection = connection.end;
 	connection.end = function(){
 		console.log(`close connection for ${connection.is_sftp ? 'SFTP' : 'SSH'} from ${connection.from_name} ...`);
 
@@ -160,6 +157,18 @@ async function close_connections(connection){
 	if(connection && connection.end) connection.end();
 } 
 
+
+async function kill_all_connections(){
+	// for each connection still open close it
+	await connections.forEach(conn_object =>{
+		console.log('killing ssh connection...');
+		conn_object.connection.end();
+	});
+
+	// now we can exit
+	process.exit();
+}
+
 module.exports = {
 	ssh_connection_promise, 
 	sftp_connection_promise, 
@@ -167,5 +176,6 @@ module.exports = {
 	close_connections,
 	check_ssh_connection,
 	check_sftp_connection,
-	check_both_connections
+	check_both_connections,
+	kill_all_connections
 };

@@ -4,7 +4,6 @@ const streamEqual = require('stream-equal');
 const {exec} = require('node-exec-promise');
 
 const config = require('./../config');
-const connections = require('./connections');
 const remote_commands = require('./remote_commands');
 const sync_helpers = require('./sync_helpers');
 

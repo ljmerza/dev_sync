@@ -7,7 +7,7 @@ const Promise = require("bluebird");
 const chokidar = require('chokidar');
 // const memwatch = require('memwatch-next');
 
-const connections_object = require("./modules/connections");
+const connect_module = require("./modules/connections");
 const formatting = require("./modules/formatting");
 const sync_helpers = require("./modules/sync_helpers");
 const logs = require("./modules/logs");
