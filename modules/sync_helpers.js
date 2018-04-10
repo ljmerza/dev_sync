@@ -1,4 +1,4 @@
-const connections = require("./connections");
+const connections_object = require("./connections");
 const formatting = require('./formatting');
 const remote_commands = require('./remote_commands');
 const sync_helpers = require('./sync_helpers');
@@ -52,7 +52,7 @@ async function sync_objects(all_files_data) {
 			const formatted_files = formatting.format_files(all_files_data);
 			create_gauge();
 
-			const result = await sync_helpers.async_sync(formatted_files, 8);
+			const result = await async_sync(formatted_files, 8, sync_object, 'sync_objects');
 			_process_synced_ojects(all_files_data);
 
 			reset_gauge();
@@ -103,10 +103,7 @@ function chunk_files(files, split_length=8){
 		file_chunks = chunk(files, chunk_length);
 	}
 
-	// for keeping track of when we've processed all chunks
-	const number_of_chunks = file_chunks.length;
-
-	return [file_chunks, number_of_chunks, 0]
+	return [file_chunks, file_chunks.length, 0]
 }
 
 /**
@@ -126,37 +123,41 @@ async function delete_remote(remote_path){
 
 /**
  * syncs an object to the remote server
+ * @param {object} file
  * @param {ssh connection} connection
- * @param {object} object_data
  */
-async function sync_object(connection, object_data) {
-	switch(object_data.action){
+async function sync_object(file, connections) {
+	switch(file.action){
 		case 'change':
 		case 'sync':
-			return await sync_file(connection, object_data);
+			return await sync_file(file, connections);
 		case 'unlink':
-			return await remote_commands.delete_remote_file(object_data.remote_path, connection.ssh_connection);
+			return await remote_commands.delete_remote_file(file.remote_path, connections);
 		case 'addDir':
-			return await remote_commands.make_remote_directory(object_data.base_path, connection.ssh_connection);
+			return await remote_commands.make_remote_directory(file.base_path, connections);
 		case 'unlinkDir':
-			return await remote_commands.delete_remote_directory(object_data.base_path, connection.ssh_connection);
+			return await remote_commands.delete_remote_directory(file.base_path, connections);
 	}
 }
 
 /**
  * syncs a file to the remote server
- * @param {ssh connection} connection
  * @param {object} file_data
+ * @param {ssh connection} connection
  */
-async function sync_file(connection, file_data){
+async function sync_file(file_data, connections){
 	return new Promise(async (resolve, reject) => {
+		let close_connection = !connections;
 		try {
+			connections = await connections_object.check_both_connections(connections);
 			await remote_commands.make_remote_directory(file_data.base_path, connection.ssh_connection);
-			connection.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
+			connections.sftp_connection.fastPut(file_data.local_path, file_data.remote_path, async err => {
 				if(err) throw err;
+				if(close_connection) connections_object.close_connections(connections);
 				return resolve(file_data.remote_path);
 			});
 		} catch(err) {
+			if(close_connection) connections_object.close_connections(connections);
 			return reject(`sync_file::${err}::${file_data.local_path}`);
 		}
 	});
@@ -166,19 +167,24 @@ async function sync_file(connection, file_data){
  * compares a local and remote file
  * @param {string} absolute_local_path 
  * @param {string} absolute_remote_path 
- * @param {string} sftp_connection 
+ * @param {string} connections 
  * @return {boolean} are the files the same?
  */
-async function needs_sync(absolute_local_path, absolute_remote_path, sftp_connection){
+async function needs_sync(absolute_local_path, absolute_remote_path, connections){
 	return new Promise(async (resolve, reject) => {
+		let close_connecton = !connections;
 		try {
-			sftp_connection = await connections.check_sftp_connection(sftp_connection);
+			connections = await connections_object.check_sftp_connection(connections);
+
 			let read_stream_local = fs.createReadStream(absolute_local_path);
-			let read_stream_remote = sftp_connection.createReadStream(absolute_remote_path);
+			let read_stream_remote = connections.sftp_connection.createReadStream(absolute_remote_path);
 			const is_equal = await are_streams_equal(read_stream_local, read_stream_remote);
+
+			if(close_connection) connections_object.close_connections(connections);
 			return resolve(!is_equal);
 
 		} catch(err) {
+			if(close_connection) connections_object.close_connections(connections);
 			return reject(`needs_sync::${err}`);
 		}
 	});
@@ -188,7 +194,7 @@ async function needs_sync(absolute_local_path, absolute_remote_path, sftp_connec
  * updates pulse animation
  * @param {object} object_data
  */
-function _update_pulse(object_data) {
+function _update_pulse(object_data){
 	number_files_uploaded++;
 	gauge_object.show(object_data.action, number_files_uploaded/number_of_files);
 
@@ -252,15 +258,19 @@ async function are_streams_equal(read_stream_local, read_stream_remote){
 /**
  * gets a remote file and syncs it to a local file
  */
-async function get_remote_file(absolute_remote_path, local_file_name, sftp_connection){
+async function get_remote_file(absolute_remote_path, local_file_name, connections){
 	return new Promise(async (resolve, reject) => {
 		try {
-			sftp_connection = await connections.check_sftp_connection(sftp_connection);
-			sftp_connection.fastGet(absolute_remote_path, local_file_name, err => {
+			let close_connection = !sftp_connection;
+			connections = await connections_object.check_sftp_connection(sftp_connection, 'get_remote_file');
+
+			connections.sftp_connection.fastGet(absolute_remote_path, local_file_name, err => {
 				if(err) throw err;
+				if(close_connection) connections.close_connections(connections);
 				return resolve(`	synced ${local_file_name} from remote`);
 			});
 		} catch(err){
+			if(close_connection) connections.close_connections(connections);
 			return reject(`get_remote_file::${err}`);
 		}
 	});
@@ -271,14 +281,17 @@ async function get_remote_file(absolute_remote_path, local_file_name, sftp_conne
  * @param {Object} file contains absolute_remote_path, local_file_name, and relative_file_path properties
  * @param {Object} sftp_connection optional connection to use (will create/close its own if not given)
  */
-async function sync_remote_to_local(file, sftp_connection) {
+async function sync_remote_to_local(file, connections, from_name='') {
 	return new Promise(async (resolve, reject) => {
 		const {absolute_remote_path, local_file_name, relative_file_path} = file;
 
+		let close_connections = !connections;
+		connections = connections_object.check_both_connections(connections, 'sync_remote_to_local');
+
 		try {
 			// try to create remote folder/file if doesn't exist
-			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`); 
-			await remote_commands.execute_remote_command(`touch ${absolute_remote_path}`);
+			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`, ssh_connection, `${from_name}::sync_remote_to_local`); 
+			await remote_commands.execute_remote_command(`touch ${absolute_remote_path}`, ssh_connection, `${from_name}::sync_remote_to_local`);
 
 			// create local file if doesn't exist
 			if (!fs.existsSync(local_file_name)) {
@@ -287,11 +300,14 @@ async function sync_remote_to_local(file, sftp_connection) {
 
 			// sync remote to local
 			let synced_message = '';
-			const need_sync = await needs_sync(local_file_name, absolute_remote_path, sftp_connection);
-			if(need_sync) synced_message = await get_remote_file(absolute_remote_path, local_file_name, sftp_connection);
+			const need_sync = await needs_sync(local_file_name, absolute_remote_path, connections);
+			if(need_sync) synced_message = await get_remote_file(absolute_remote_path, local_file_name, connections);
+
+			if(close_connections) connections.close_connections(connections);
 			return resolve(synced_message);
 
 		} catch(err){
+			if(close_connections) connections.close_connections(connections);
 			return reject(`sync_remote_to_local::${err}`);
 		}	
 	});
@@ -303,29 +319,27 @@ async function sync_remote_to_local(file, sftp_connection) {
  * @param {number} chunk_length
  * @param {Object} sftp_connection
  */
-async function async_sync(files, chunk_length, sftp_connection){
+async function async_sync(files, chunk_length, sync_function, from_name){
 	return new Promise(async (resolve, reject) => {
-		let close_connection = !sftp_connection; // if we passed a connection dont lose it when done
-		sftp_connection = connections.check_sftp_connection(sftp_connection);
-
+		let connections = await connections_object.sftp_connection_promise('async_sync');
 		try {
 			let sync_results = [];
-			let [file_chunks, number_of_chunks, processed_chunks] = chunk_files(files, 4);
-			file_chunks.forEach(async file_chunk => {
+			let [file_chunks, number_of_chunks, processed_chunks] = chunk_files(files, 5);
 
-				await async_for_each(file_chunk, async log_file => {
-					let message = await sync_remote_to_local(log_file, sftp_connection);
+			file_chunks.forEach(async file_chunk => {
+				await async_for_each(file_chunk, async file => {
+					let message = await sync_function(file, connections, from_name);
 					sync_results.push(message);
 				});
 
 				if(++processed_chunks === number_of_chunks){
-					if(close_connection) connections.close_connections(sftp_connection);
+					if(close_connection) connections_object.close_connections(connections);
 					return resolve(sync_results);
 				};
 			});
 
 		} catch(err) {
-			if(close_connection) connections.close_connections(sftp_connection);
+			if(close_connection) connections_object.close_connections(connections);
 			return reject(`async_sync::${err}`);
 		}
 	});

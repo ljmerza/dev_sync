@@ -4,17 +4,18 @@ const formatting = require('./formatting');
 const Promise = require("bluebird");
 
 // test connection to dev server
-execute_remote_command('hostname');
+execute_remote_command('hostname', null, 'hostname');
 
 /**
  *  makes directory folder for a given path
  * @param {string} base_path
  * @param {ssh2 connection} connection
  */
-async function make_remote_directory(base_path, connection) {
+async function make_remote_directory(base_path, ssh_connection, from_name) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`mkdir -p ${base_path}`, connection);
+			ssh_connection = await connections_object.check_ssh_connection(ssh_connection, `${from_name}::make_remote_directory`);
+			await execute_remote_command(`mkdir -p ${base_path}`, ssh_connection, `${from_name}::make_remote_directory`);
 		} catch(err){
 			return reject(`make_remote_directory::${err}`);
 		}
@@ -27,10 +28,10 @@ async function make_remote_directory(base_path, connection) {
  * @param {string} base_path
  * @param {ssh2 connection} connection
  */
-async function delete_remote_directory(base_path, connection){
+async function delete_remote_directory(base_path, connection, from_name){
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm -rd ${base_path}`, connection);
+			await execute_remote_command(`rm -rd ${base_path}`, connection, `${from_name}::delete_remote_directory`);
 		} catch(err){
 			return reject(`delete_remote_directory::${err}`);
 		}
@@ -43,10 +44,10 @@ async function delete_remote_directory(base_path, connection){
  * @param {string} remote_path
  * @param {ssh2 connection} connection
  */
-async function delete_remote_file(remote_path, connection){
+async function delete_remote_file(remote_path, connection, from_name){
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm ${remote_path}`, connection);
+			await execute_remote_command(`rm ${remote_path}`, connection, `${from_name}::delete_remote_file`);
 		} catch(err){
 			return reject(`delete_remote_file::${err}`);
 		}
@@ -59,11 +60,11 @@ async function delete_remote_file(remote_path, connection){
  * @param {string} repo_path
  * @param {ssh2 connection} connection
  */
-async function delete_remote_repo(repo_path, connection) {
+async function delete_remote_repo(repo_path, connection, from_name) {
 	console.log('deleting remote repo folder...');
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm -rd ${repo_path}`, connection);
+			await execute_remote_command(`rm -rd ${repo_path}`, connection, `${from_name}::delete_remote_repo`);
 		} catch(err){
 			return reject(`delete_remote_repo::${err}`);
 		}
@@ -75,7 +76,7 @@ async function delete_remote_repo(repo_path, connection) {
  * update permissions for all uploaded files
  * @param {Array<object>} uploaded_files
  */
-async function update_permissions(uploaded_files) {
+async function update_permissions(uploaded_files, from_name) {
 
 	return new Promise(async (resolve, reject) => {
 		// create command for all files uploaded
@@ -85,7 +86,7 @@ async function update_permissions(uploaded_files) {
 
 		// try to execute command
 		try {
-			await execute_remote_command(command);
+			await execute_remote_command(command, null, `${from_name}::update_permissions`);
 		} catch(err){
 			return reject(`update_permissions::${err}`);
 		}
@@ -99,23 +100,14 @@ async function update_permissions(uploaded_files) {
  * @param {string} command
  * @param {ssh2 connection} connection
  */
-async function execute_remote_command(command, connection) {
-
-	// if given a connection object dont close at the end
-	let close_connection = false;
-
+async function execute_remote_command(command, connections, from_name='execute_remote_command') {
 	return new Promise(async (resolve, reject) => {
+		let close_connection = !connections;
+		connections = await connections_object.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
 
 		try {
-
-			// if SSH connection wasn't passed then get one
-			if(!connection){
-				connection = await connections_object.ssh_connection_promise();
-				close_connection = true;
-			}
-
 			// once uploaded array is empty then execute command to reset permissions
-			connection.exec(command, (err, stream) => {
+			connections.ssh_connection.exec(command, (err, stream) => {
 				if(err) throw err;
 
 				// on data or error event -> format then log stdout from server
@@ -133,12 +125,12 @@ async function execute_remote_command(command, connection) {
 					}
 
 	  			}).on('close', () => { 
-					if(close_connection) connections_object.close_connections(connection);
+					if(close_connection) connections_object.close_connections(connections);
 					return resolve(); 
 				});
 			});
 		} catch(err) {
-			if(close_connection) connections_object.close_connections(connection);
+			if(close_connection) connections_object.close_connections(connections);
 			return reject(`execute_remote_command::${err}`);
 		}
 	});
@@ -150,12 +142,12 @@ async function execute_remote_command(command, connection) {
  * @param {string} path
  * @param {string} repo
  */
-async function restart_hypnotoad(path, repo) {
+async function restart_hypnotoad(path, repo, from_name='restart_hypnotoad') {
 	console.log(`restarting ${repo} hypnotoad...`);
 
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`hypnotoad -s ${path}; hypnotoad ${path}`);
+			await execute_remote_command(`hypnotoad -s ${path}; hypnotoad ${path}`, null, `${from_name}::restart_hypnotoad`);
 		} catch(err){
 			return reject(`restart_hypnotoad::${err}`)
 		}
@@ -169,12 +161,12 @@ async function restart_hypnotoad(path, repo) {
  * @param {string} base_path
  * @param {ssh2 connection} connection
  */
-async function restart_apache() {
+async function restart_apache(from_name='restart_apache') {
 	console.log(`restarting apache...`);
 
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`apache.sh`);
+			await execute_remote_command(`apache.sh`, null, `${from_name}::restart_hypnotoad`);
 		} catch(err){
 			return reject(`restart_apache::${err}`)
 		}

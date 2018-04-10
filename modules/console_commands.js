@@ -113,7 +113,7 @@ process.stdin.on('keypress', async function (ch, key) {
 
 		// apache
 		} else if ( key_presses.match(/^(m|apache|pach)$/i) ) {
-			remote_commands.restart_apache()
+			remote_commands.restart_apache('console_commands')
 			.catch( message => console.log(message) );
 			return;
 
@@ -121,7 +121,7 @@ process.stdin.on('keypress', async function (ch, key) {
 		} else if ( key_presses.match(/^(hm|mh)$/i) ) {
 			hypnotoad = `${config.remote_base}/${config.hypnotoad_paths.ud_api}`;
 			repo_name = 'UD_api';
-			remote_commands.restart_apache()
+			remote_commands.restart_apache('console_commands')
 			.catch( message => console.log(message) );
 
 		// reset modules folder
@@ -136,7 +136,7 @@ process.stdin.on('keypress', async function (ch, key) {
 
 		// reset gauge
 		} else if ( key_presses.match(/^reset$/i) ) {
-			sync_helpers.reset_gauge();
+			sync_helpers.reset_gauge('console_commands');
 			return;
 		}
 
@@ -152,13 +152,13 @@ process.stdin.on('keypress', async function (ch, key) {
 				if(repo_name.match('custom command')) console.log(repo_name); 	
 				else if(repo_name.match('modules')) console.log(`deleting ${repo_name} folder...`);
 				else console.log(`restarting ${config.repo_name}...`);
-				message = await remote_commands.execute_remote_command(command)
+				message = await remote_commands.execute_remote_command(command, null, 'console_commands')
 
 			} else if (hypnotoad) {
-				message = await remote_commands.restart_hypnotoad(hypnotoad, repo_name)
+				message = await remote_commands.restart_hypnotoad(hypnotoad, repo_name, 'console_commands')
 
 			} else if ( key_presses === 'logs' ) {
-				message = await logs.reset_logs();
+				message = await logs.reset_logs('console_commands');
 
 			// else show help
 			} else if (!message) {

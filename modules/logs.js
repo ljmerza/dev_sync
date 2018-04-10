@@ -23,14 +23,13 @@ let log_files = [
 ];
 
 
-/*
-*	function _sync_logs(connections)
-* 		syncs log files from server to host
-*/
-async function _sync_logs(formatted_log_files) {
+/**
+ * syncs log files from server to host
+ */
+async function _sync_logs(log_files) {
 	return new Promise( async (resolve, reject) => {
 		try {
-			const result = await sync_helpers.async_sync(formatted_log_files, 4);
+			const result = await sync_helpers.async_sync(log_files, 4, sync_helpers.sync_remote_to_local, '_sync_logs');
 			return resolve(result);
 		} catch(err){
 			return reject(`_sync_logs::${err}`);
@@ -57,7 +56,6 @@ async function sync_logs_interval() {
 			if(!check_sync) return;
 
 			check_sync = false;
-			console.log('check_sync: ', check_sync);
 			const messages = await _sync_logs(formatted_log_files);
 			check_sync = true;
 
@@ -70,14 +68,14 @@ async function sync_logs_interval() {
 			check_sync = true;
 			console.log('sync_logs_interval::', err);
 		}
-	}, 200);
+	}, 500);
 };
 
 /*
 *	function reset_logs()
 * 		resets logs
 */
-async function reset_logs() {
+async function reset_logs(from_name='reset_logs') {
 
 	// combine all log file paths into a command
 	const command = log_files.map(log_file => `${log_file[0]}/${log_file[1]}`)
@@ -88,7 +86,7 @@ async function reset_logs() {
 	// try to reset remote logs
 	return new Promise(async (resolve, reject) => {
 		try {
-			await remote_commands.execute_remote_command(command);
+			await remote_commands.execute_remote_command(command, null, `${from_name}::reset_logs`);
 			return resolve('logs reset');
 		} catch(err){
 			return reject(`reset_logs::${err}`);

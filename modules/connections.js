@@ -17,18 +17,18 @@ connections = [];
 
 /*
 */
-function Client(){
-	return _override_connection( new SSH2() );
+function Client(from_name='Client'){
+	return _override_connection(new SSH2(), false, from_name);
 }
 
 /*
 *	ssh_connection_promise()
 * 		return a ssh connection promise
 */
-function ssh_connection_promise() {
+function ssh_connection_promise(from_name='ssh_connection_promise') {
 	return new Promise( (resolve, reject) => {
 		// create ssh object
-		let ssh_connection = new Client();
+		let ssh_connection = new Client(from_name);
 
 		// connect to server
 		ssh_connection.connect({
@@ -39,7 +39,7 @@ function ssh_connection_promise() {
 		});
 
 		ssh_connection.on('ready', () => {
-			resolve(ssh_connection);
+			resolve({ssh_connection});
 		});
 
 		ssh_connection.on('error', error => {
@@ -51,16 +51,38 @@ function ssh_connection_promise() {
 /**
  *
  */
-async function check_sftp_connection(sftp_connection){
+async function check_sftp_connection(connections, from_name='check_sftp_connection'){
 	return new Promise(async (resolve, reject) => {
 		try {
-			if(!sftp_connection) return resolve(sftp_connection);
-			const conns = await sftp_connection_promise();
-			return resolve(conns.sftp_connection);
+			if(!connections || !connections.sftp_connection) connections = await sftp_connection_promise(`${from_name}::check_sftp_connection`);
+			return resolve(connections);
 		} catch(err){
 			return reject(`check_sftp_connection::${err}`);
 		}
 	})
+}
+
+/**
+ *
+ */
+async function check_ssh_connection(connections, from_name='check_ssh_connection'){
+	return new Promise(async (resolve, reject) => {
+		try {
+			if(!connections || !connections.ssh_connection) connections = await ssh_connection_promise(`${from_name}::check_ssh_connection`);
+			return resolve(connections);
+		} catch(err){
+			return reject(`check_ssh_connection::${err}`);
+		}
+	})
+}
+
+/**
+ *
+ */
+async function check_both_connections(connections, from_name='check_both_connections'){
+	const ssh_connection = await check_ssh_connection(connections.ssh_connection, `${from_name}::check_both_connections`);
+	const sftp_connection = await check_sftp_connection(connections.sftp_connection, `${from_name}::check_both_connections`);
+	return {ssh_connection, sftp_connection};
 }
 
 
@@ -68,19 +90,19 @@ async function check_sftp_connection(sftp_connection){
 *	sftp_connection_promise()
 * 		return a sFTP connection promise
 */
-async function sftp_connection_promise() {
+async function sftp_connection_promise(from_name='sftp_connection_promise') {
 	return new Promise(async (resolve, reject) => {
-		let ssh_connection;
+		let connections;
 		try {
-			ssh_connection = await ssh_connection_promise();
-			ssh_connection.sftp( (err, sftp_connection) => {
+			connections = await ssh_connection_promise(`${from_name}::sftp_connection_promise`);
+			connections.ssh_connection.sftp( (err, sftp_connection) => {
 				if(err) throw err;
 
-				sftp_connection = _override_connection(sftp_connection);
-				return resolve({ sftp_connection, ssh_connection });
+				connections.sftp_connection = _override_connection(sftp_connection, true, from_name);
+				return resolve(connections);
 			});
 		}catch(err){
-			if(ssh_connection) ssh_connection.end();
+			close_connections(connections);
 			return reject(`sftp_connection_promise::${err}`);
 		}
 	});
@@ -92,20 +114,22 @@ async function sftp_connection_promise() {
 *		to global connections array to keep track of open connections
 *		overrides the end function to update the open connections array
 */
-function _override_connection(connection){
+function _override_connection(connection, is_sftp=false, from_name='_override_connection'){
 
 	// create symbol and save on connections array
 	const symbol = Symbol();
 	connection.symbol = symbol;
 	connections.push({symbol, connection});
-	// console.log('open connection...');
+	connection.is_sftp = is_sftp;
+	connection.from_name = from_name;
+	console.log(`open connection for ${is_sftp ? 'SFTP' : 'SSH'} from ${from_name}...`);
 
 	// save old end function
 	const end_connection = connection.end;
 
 	// override end function
 	connection.end = function(){
-		// console.log('close connection...');
+		console.log(`close connection for ${connection.is_sftp ? 'SFTP' : 'SSH'} from ${connection.from_name} ...`);
 
 		// call end to connection 
 		end_connection.apply(this);
@@ -134,5 +158,7 @@ module.exports = {
 	sftp_connection_promise, 
 	connections,
 	close_connections,
-	check_sftp_connection
+	check_ssh_connection,
+	check_sftp_connection,
+	check_both_connections
 };
