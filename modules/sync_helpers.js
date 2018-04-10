@@ -275,42 +275,6 @@ async function get_remote_file(absolute_remote_path, local_file_name, connection
 	});
 }
 
-/**
- * syncs a file from server to host
- * @param {Object} file contains absolute_remote_path, local_file_name, and relative_file_path properties
- * @param {Object} sftp_connection optional connection to use (will create/close its own if not given)
- */
-async function sync_remote_to_local(file, connections, from_name='') {
-	return new Promise(async (resolve, reject) => {
-		const {absolute_remote_path, local_file_name, relative_file_path} = file;
-
-		let close_connections = !connections;
-		connections = await connect_module.check_both_connections(connections, 'sync_remote_to_local');
-
-		try {
-			// try to create remote folder/file if doesn't exist
-			await remote_commands.execute_remote_command(`mkdir -p ${config.remote_base}/${relative_file_path}`, connections, `${from_name}::sync_remote_to_local`); 
-			await remote_commands.execute_remote_command(`touch ${absolute_remote_path}`, connections, `${from_name}::sync_remote_to_local`);
-
-			// create local file if doesn't exist
-			if (!fs.existsSync(local_file_name)) {
-				await exec(`touch ${local_file_name}`);
-			}
-
-			// sync remote to local
-			let synced_message = '';
-			const need_sync = await needs_sync(local_file_name, absolute_remote_path, connections);
-			if(need_sync) synced_message = await get_remote_file(absolute_remote_path, local_file_name, connections);
-
-			if(close_connections) connect_module.close_connections(connections);
-			return resolve(synced_message);
-
-		} catch(err){
-			if(close_connections) connect_module.close_connections(connections);
-			return reject(`sync_remote_to_local::${err}`);
-		}	
-	});
-}
 
 /**
  * breaks an array of files into chunks and syncs them from remote to local
@@ -346,6 +310,13 @@ async function async_sync(files, chunk_length, sync_function, from_name){
 	});
 }
 
+function currier(fn) {
+	const args = [...args];
+	return function(){
+		return fn.apply(this, [...args, ...arguments])
+	}
+}
+
 module.exports = {
 	sync_objects,
 	transfer_repo,
@@ -354,6 +325,6 @@ module.exports = {
 	needs_sync,
 	get_remote_file,
 	chunk_files,
-	sync_remote_to_local,
-	async_sync
+	async_sync,
+	currier
 };

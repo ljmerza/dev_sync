@@ -159,25 +159,73 @@ async function restart_hypnotoad(path, repo, from_name='restart_hypnotoad') {
 
 /*
  * restarts a user's apache
- * @param {string} base_path
  * @param {ssh2 connection} connection
  */
 async function restart_apache(from_name='restart_apache') {
 	console.log(`restarting apache...`);
 
 	return new Promise(async (resolve, reject) => {
+		let close_connection = !connections;
 		try {
+			connections = await connect_module.check_sftp_connection(connections);
 			await execute_remote_command(`apache.sh`, null, `${from_name}::restart_hypnotoad`);
+			if(close_connection) connect_module.close_connections(connections);
+			return resolve();
 		} catch(err){
+			if(close_connection) connect_module.close_connections(connections);
 			return reject(`restart_apache::${err}`)
 		}
-		return resolve();
 	});
 }
 
+async function restart_apache2(connections){
+	return sync_helpers.currier(remote_command_factory, {
+		command: 'apache.sh',
+		log_message: 'Restarting apache...',
+		from_name: 'restart_apache'
+	})(connections);
+}
+
+/**
+ *
+ */
+async function remote_command_factory({command='', log_message='', from_name='remote_command_factory', connections=''}) {
+	if(log_message) console.log(log_message);
+
+	return new Promise(async (resolve, reject) => {
+		let close_connection = !connections;
+		try {
+			connections = await connect_module.check_ssh_connection(connections);
+			const result = await execute_remote_command(`apache.sh`, connections, from_name);
+			if(close_connection) connect_module.close_connections(connections);
+			return resolve(result);
+		} catch(err){
+			if(close_connection) connect_module.close_connections(connections);
+			return reject(`${from_name}::${err}`)
+		}
+	});
+}
+
+/**
+ *
+ */
+async function mkdir(absolute_file_path, connections='', from_name=''){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await execute_remote_command(`mkdir -p ${absolute_file_path}`, connections, `${from_name}::mkdir`);
+		} catch(err){
+			return reject(`restart_hypnotoad::${err}`)
+		}
+		return resolve();
+	});
+
+	return await remote_commands.execute_remote_command; 
+
+}
 
 module.exports = {
 	restart_apache,
+	restart_apache2,
 	restart_hypnotoad,
 	execute_remote_command,
 	update_permissions,
