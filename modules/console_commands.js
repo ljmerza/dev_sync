@@ -1,6 +1,7 @@
 
 const keypress = require('keypress');
 const Promise = require("bluebird");
+const clear = require("cli-clear");
 
 const config = require('./../config');
 const connect_module = require("./connections");
@@ -29,11 +30,11 @@ process.stdin.on('keypress', async function (ch, key) {
 	// if we hit return then lets see if we have a match
 	if(key && key.name === 'return') {
 
-		let local_path;
-		let remote_path;
-		let hypnotoad;
-		let repo_name;
-		let command;
+		let local_path = '';
+		let remote_path = '';
+		let hypnotoad = '';
+		let repo_name = '';
+		let command = '';
 
 		// reset all key presses
 		const key_presses = collected_keys;
@@ -124,21 +125,26 @@ process.stdin.on('keypress', async function (ch, key) {
 			command = key_presses.slice(4,key_presses.length);
 			message = `custom command: ${command}`;
 
-		// reset gauge
-		} else if ( key_presses.match(/^reset$/i) ) {
-			sync_helpers.reset_gauge('console_commands');
+		// help
+		} else if ( key_presses.match(/^help$/i) ) {
+			console.log(help); 
+			return;
+
+		// clear console
+		} else if ( key_presses.match(/^[clear]|c$/i) ) {
+			clear();
 			return;
 		}
 
-
-		let message;
+		let message = '';
 		try {
 			// sync repo
 			if(local_path) {
 				console.log(`syncing ${repo_name}...`);
-				message = await sync_helpers.transfer_repo({local_path, base_remote_path:remote_path, repo_name});
+				await sync_helpers.transfer_repo({local_path, remote_base_path:remote_path, repo_name});
 
 			} else if(command) {
+				console.log('command: ', command);
 				// custom commands, deleting folders, restarting repos
 				if(repo_name.match('custom command')) console.log(repo_name); 	
 				else if(repo_name.match('modules')) console.log(`deleting ${repo_name} folder...`);
@@ -152,26 +158,8 @@ process.stdin.on('keypress', async function (ch, key) {
 			} else if ( key_presses === 'logs' ) {
 				message = await logs.reset_logs('console_commands');
 
-			// else show help
-			} else if (!message) {
-				message = `
-sync repo to server by typing the repo name and pressing enter. Supported repos:
-		ud, ud_api, wam,aqe, tqi, modules, taskamster, teamdb, 
-		teamdapi, wamapi, aqeapi, upm, upmapi, templates, 
-		udember (build files only)
-
-restart hypnotoad with *hyp:
-		hyp - udapi, thyp - teamdb, 
-		ahyp - aqe, phyp - upm, whyp - wam
-
-reset logs with 'logs' command (no quotes)
-restart apache with 'apache', 'm', or 'pach'
-restart ud_api hypnotoad with 'h' 
-or apache and hypnotoad with 'mh' or 'hm'
-
-you can also send a coustom command with 'cmd command'
-example 'cmd ls' without quotes will return the dir list
-				`;
+			} else {
+				console.log('Incorrect command type `help` to see options');
 			}
 
 			// finally log message from command execution
@@ -192,4 +180,21 @@ let key_presses = '';
 
 
 
+const help = `
+sync repo to server by typing the repo name and pressing enter. Supported repos:
+		ud, ud_api, wam,aqe, tqi, modules, taskamster, teamdb, 
+		teamdapi, wamapi, aqeapi, upm, upmapi, templates, 
+		udember (build files only)
 
+restart hypnotoad with *hyp:
+		hyp - udapi, thyp - teamdb, 
+		ahyp - aqe, phyp - upm, whyp - wam
+
+reset logs with 'logs' command (no quotes)
+restart apache with 'apache', 'm', or 'pach'
+restart ud_api hypnotoad with 'h' 
+or apache and hypnotoad with 'mh' or 'hm'
+
+you can also send a coustom command with 'cmd command'
+example 'cmd ls' without quotes will return the dir list
+`;

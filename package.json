@@ -6,10 +6,12 @@
   "dependencies": {
     "bluebird": "^3.5.0",
     "chokidar": "^1.7.0",
+    "cli-clear": "^1.0.4",
     "gauge": "^2.7.4",
     "keypress": "^0.2.1",
     "memwatch-next": "^0.3.0",
     "node-exec-promise": "^1.0.2",
+    "progress": "^2.0.0",
     "recursive-readdir": "^2.2.1",
     "socket.io": "^2.0.4",
     "ssh2": "^0.5.4",

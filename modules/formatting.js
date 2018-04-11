@@ -105,17 +105,28 @@ module.exports.formatServerStdOut = function(data){
  * @param {string} local_path
  * @param {string} repo
  */
-module.exports.getAbsoluteRemoteAndLocalPaths = function({files, base_remote_path, local_path, repo}){
+module.exports.getAbsoluteRemoteAndLocalPaths = function({files, remote_base_path, local_path, repo}){
 	const local_path_length = local_path.split('/').length;
 
 	return files.map(file => {
-		let remote_path = file.split('\\').splice(local_path_length);
-		const absolute_remote_path = `${base_remote_path}/${remote_path}`;
+		let remote_path = file.split('\\').splice(local_path_length).join('/');
+
+		const absolute_remote_path = `${remote_base_path}/${remote_path}`;
+		const remote_base_path_file = dirname(absolute_remote_path);
 
 		const absolute_local_path = _generateAbsoluteLocalPath({local_file_path:file});
 		const local_base_path = dirname(absolute_local_path);			
 
-		return {absolute_remote_path, absolute_local_path, local_base_path, repo, action: 'sync', sync_repo:true};
+		return {
+			absolute_remote_path, 
+			absolute_local_path, 
+			local_base_path, 
+			repo, 
+			action: 'sync', 
+			sync_repo:true, 
+			remote_base_path:remote_base_path_file,
+			local_file_path: file.replace(/\\/g, '/').replace(/\.\.\//, '')
+		};
 	});
 }
 
@@ -134,13 +145,14 @@ module.exports.formatLogFiles = function(log_files){
 		const local_file_path = file[2];
 
 		const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
+		const remote_base_path = `${config.remote_base}/${relative_file_path}`;
 		const absolute_local_path = _generateAbsoluteLocalPath({local_file_path});
 
-		return {absolute_local_path, absolute_remote_path, local_base_path:local_file_path};
+		return {absolute_local_path, absolute_remote_path, local_base_path:local_file_path, remote_base_path};
 	});
 }
 
 function _generateAbsoluteLocalPath({local_file_path}){
 	return join(__dirname, '..',`${local_file_path}`)
-		.replace(/\//g,"\\");
+		.replace(/\//g,'\\');
 }

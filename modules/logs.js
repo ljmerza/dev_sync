@@ -1,7 +1,6 @@
 const Promise = require("bluebird");
 const fs = require('fs');
 const streamEqual = require('stream-equal');
-const {exec} = require('node-exec-promise');
 
 const config = require('./../config');
 const remote_commands = require('./remote_commands');

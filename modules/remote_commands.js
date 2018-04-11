@@ -4,7 +4,11 @@ const formatting = require('./formatting');
 const Promise = require("bluebird");
 
 // test connection to dev server
-execute_remote_command('hostname', null, 'hostname');
+
+(async () => {
+	const server = await execute_remote_command('hostname', null, 'hostname', true);
+	console.log(`Connected with ${server}`);
+})();
 
 /**
  *  makes directory folder for a given path
@@ -115,7 +119,6 @@ async function execute_remote_command(command, connections, from_name='execute_r
 				stream.on('data', data => {
 					// on data received - process it
 					data = formatting.formatServerStdOut(data);
-					if(command === 'hostname') data = `\nConnected with: ${data}`;
 					if(!return_result) console.log(data);
 					else return_value += data;
 
