@@ -6,7 +6,6 @@ const {exec} = require('node-exec-promise');
 const config = require('./../config');
 const remote_commands = require('./remote_commands');
 const sync_helpers = require('./sync_helpers');
-const connect_module = require('./connect_module');
 
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
@@ -29,7 +28,7 @@ let log_files = [
 async function _sync_logs(log_files) {
 	return new Promise( async (resolve, reject) => {
 		try {
-			const result = await connection.async_sync(log_files, 4, connect_module.sync_remote_to_local, '_sync_logs');
+			const result = await sync_helpers.async_sync(log_files, 4, sync_helpers.sync_remote_to_local, '_sync_logs');
 			return resolve(result);
 		} catch(err){
 			return reject(`_sync_logs::${err}`);
