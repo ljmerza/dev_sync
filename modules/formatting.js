@@ -1,8 +1,8 @@
 const config = require('./../config');
-const path = require('path');
+const { join, dirname } = require('path');
 
 // what is the folder depth of the base path to all watched files?
-const base_path_depth = path.join(__dirname, '../..').split('\\').length-1;
+const base_path_depth = join(__dirname, '../..').split('\\').length-1;
 
 /**
  * formats a local file path for remote path
@@ -99,25 +99,23 @@ module.exports.formatServerStdOut = function(data){
 }
 
 /**
- * creates remote and local paths when syncing an entire repo
- * @param {object} files
- * @param {Array} local_path_folders
- * @param {string} original_local_path
- * @param {string} original_remote_path
+ * creates remote and local absoluate paths when syncing an entire repo
+ * @param {Array<string>} files
+ * @param {string} absolute_remote_path
+ * @param {string} local_path
  * @param {string} repo
  */
-module.exports.transferRepoFormatPaths = function({files, local_path_folders, original_local_path, original_remote_path, repo}){
+module.exports.getAbsoluteRemoteAndLocalPaths = function({files, base_remote_path, local_path, repo}){
+	const local_path_length = local_path.split('/').length;
 
-	// format local/remote file paths
 	return files.map(file => {
+		let remote_path = file.split('\\').splice(local_path_length);
+		const absolute_remote_path = `${base_remote_path}/${remote_path}`;
 
-		// create local/remote file absolute paths
-		let remote_path = file.split('\\').splice(local_path_folders.length).join('\\');
-		let local_path =  path.join(__dirname, '..',`${original_local_path}\\${remote_path}`).replace(/\\/g,"/");
-		remote_path = `${original_remote_path}/${remote_path}`;
-		let base_path = path.dirname(remote_path);			
+		const absolute_local_path = _generateAbsoluteLocalPath({local_file_path:file});
+		const local_base_path = dirname(absolute_local_path);			
 
-		return {remote_path, local_path, base_path, repo, action: 'sync', sync_repo:true};
+		return {absolute_remote_path, absolute_local_path, local_base_path, repo, action: 'sync', sync_repo:true};
 	});
 }
 
@@ -127,4 +125,22 @@ module.exports.transferRepoFormatPaths = function({files, local_path_folders, or
  */
 module.exports.stripRemotePathForDisplay = function(remote_path){
 	return remote_path.split('/').splice(3).join('/');
+}
+
+module.exports.formatLogFiles = function(log_files){
+	return log_files.map(file => {
+		const relative_file_path = file[0];
+		const remote_file_name = file[1];
+		const local_file_path = file[2];
+
+		const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
+		const absolute_local_path = _generateAbsoluteLocalPath({local_file_path});
+
+		return {absolute_local_path, absolute_remote_path, local_base_path:local_file_path};
+	});
+}
+
+function _generateAbsoluteLocalPath({local_file_path}){
+	return join(__dirname, '..',`${local_file_path}`)
+		.replace(/\//g,"\\");
 }

@@ -9,13 +9,13 @@ execute_remote_command('hostname', null, 'hostname');
 /**
  *  makes directory folder for a given path
  * @param {string} base_path
- * @param {ssh2 connection} connection
+ * @param {ssh2 connection} connections
  */
-async function make_remote_directory(base_path, ssh_connection, from_name) {
+async function make_remote_directory(base_path, connections, from_name) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			ssh_connection = await connect_module.check_ssh_connection(ssh_connection, `${from_name}::make_remote_directory`);
-			await execute_remote_command(`mkdir -p ${base_path}`, ssh_connection, `${from_name}::make_remote_directory`);
+			connections = await connect_module.check_ssh_connection(connections, `${from_name}::make_remote_directory`);
+			await execute_remote_command(`mkdir -p ${base_path}`, connections, `${from_name}::make_remote_directory`);
 		} catch(err){
 			return reject(`make_remote_directory::${err}`);
 		}
@@ -26,12 +26,12 @@ async function make_remote_directory(base_path, ssh_connection, from_name) {
 /**
  * deletes directory folder for a given path
  * @param {string} base_path
- * @param {ssh2 connection} connection
+ * @param {ssh2 connection} connections
  */
-async function delete_remote_directory(base_path, connection, from_name){
+async function delete_remote_directory(base_path, connections, from_name){
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm -rd ${base_path}`, connection, `${from_name}::delete_remote_directory`);
+			await execute_remote_command(`rm -rd ${base_path}`, connections, `${from_name}::delete_remote_directory`);
 		} catch(err){
 			return reject(`delete_remote_directory::${err}`);
 		}
@@ -42,12 +42,12 @@ async function delete_remote_directory(base_path, connection, from_name){
 /**
  * deletes file for a given path
  * @param {string} remote_path
- * @param {ssh2 connection} connection
+ * @param {ssh2 connection} connections
  */
-async function delete_remote_file(remote_path, connection, from_name){
+async function delete_remote_file(remote_path, connections, from_name){
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm ${remote_path}`, connection, `${from_name}::delete_remote_file`);
+			await execute_remote_command(`rm ${remote_path}`, connections, `${from_name}::delete_remote_file`);
 		} catch(err){
 			return reject(`delete_remote_file::${err}`);
 		}
@@ -58,13 +58,13 @@ async function delete_remote_file(remote_path, connection, from_name){
 /**
  * deletes a repo's remote folder
  * @param {string} repo_path
- * @param {ssh2 connection} connection
+ * @param {ssh2 connection} connections
  */
-async function delete_remote_repo(repo_path, connection, from_name) {
+async function delete_remote_repo(repo_path, connections, from_name) {
 	console.log('deleting remote repo folder...');
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`rm -rd ${repo_path}`, connection, `${from_name}::delete_remote_repo`);
+			await execute_remote_command(`rm -rd ${repo_path}`, connections, `${from_name}::delete_remote_repo`);
 		} catch(err){
 			return reject(`delete_remote_repo::${err}`);
 		}
@@ -76,7 +76,7 @@ async function delete_remote_repo(repo_path, connection, from_name) {
  * update permissions for all uploaded files
  * @param {Array<object>} uploaded_files
  */
-async function update_permissions(uploaded_files, from_name) {
+async function update_permissions(uploaded_files, from_name, connections) {
 
 	return new Promise(async (resolve, reject) => {
 		// create command for all files uploaded
@@ -86,7 +86,7 @@ async function update_permissions(uploaded_files, from_name) {
 
 		// try to execute command
 		try {
-			await execute_remote_command(command, null, `${from_name}::update_permissions`);
+			await execute_remote_command(command, connections, `${from_name}::update_permissions`);
 		} catch(err){
 			return reject(`update_permissions::${err}`);
 		}
@@ -100,34 +100,36 @@ async function update_permissions(uploaded_files, from_name) {
  * @param {string} command
  * @param {ssh2 connection} connection
  */
-async function execute_remote_command(command, connections, from_name='execute_remote_command') {
+async function execute_remote_command(command, connections, from_name='execute_remote_command', return_result=false) {
 	return new Promise(async (resolve, reject) => {
 		let close_connection = !connections;
 		connections = await connect_module.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
 
-
+		let return_value = '';
 		try {
 			// once uploaded array is empty then execute command to reset permissions
 			connections.ssh_connection.exec(command, (err, stream) => {
-				if(err) return reject(`execute_remote_command::${err}`);
+				if(err) return reject(`stream error execute_remote_command::${err}`);
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {
 					// on data received - process it
 					data = formatting.formatServerStdOut(data);
 					if(command === 'hostname') data = `\nConnected with: ${data}`;
-					console.log(data);
+					if(!return_result) console.log(data);
+					else return_value += data;
 
 				}).stderr.on('data', error => {
 					// on error data received process it - dont show certain errors
 					data = formatting.formatServerStdOut(error).trim();
-					if(!data.match(/^-( chmod| bash| : No such| chgrp| cannot|$)/)){
-						console.log(data);
+					if(!data.match(/^( chmod| bash| : No such| chgrp| cannot|Too late|$)/)){
+						return reject(`stderr execute_remote_command::${error}`);
 					}
+					return resolve(return_value);
 
 	  			}).on('close', () => { 
 					if(close_connection) connect_module.close_connections(connections);
-					return resolve(); 
+					return resolve(return_value);
 				});
 			});
 		} catch(err) {
@@ -141,14 +143,14 @@ async function execute_remote_command(command, connections, from_name='execute_r
 /**
  * restarts a repo's hypnotoad
  * @param {string} path
- * @param {string} repo
+ * @param {string} repo_name
  */
-async function restart_hypnotoad(path, repo, from_name='restart_hypnotoad') {
-	console.log(`restarting ${repo} hypnotoad...`);
+async function restart_hypnotoad({path, repo_name, connections, from_name='restart_hypnotoad'}) {
+	console.log(`restarting ${repo_name} hypnotoad...`);
 
 	return new Promise(async (resolve, reject) => {
 		try {
-			await execute_remote_command(`hypnotoad -s ${path}; hypnotoad ${path}`, null, `${from_name}::restart_hypnotoad`);
+			await execute_remote_command(`hypnotoad -s ${path}; hypnotoad ${path}`, connections, `${from_name}::restart_hypnotoad`);
 		} catch(err){
 			return reject(`restart_hypnotoad::${err}`)
 		}
@@ -157,21 +159,40 @@ async function restart_hypnotoad(path, repo, from_name='restart_hypnotoad') {
 }
 
 
-/*
+/**
  * restarts a user's apache
- * @param {string} base_path
- * @param {ssh2 connection} connection
+ * 
  */
-async function restart_apache(from_name='restart_apache') {
+async function restart_apache({connections, from_name='restart_apache'}) {
 	console.log(`restarting apache...`);
 
 	return new Promise(async (resolve, reject) => {
-		try {
-			await execute_remote_command(`apache.sh`, null, `${from_name}::restart_hypnotoad`);
+		try {			
+			await execute_remote_command(`apache.sh`, connections, `${from_name}::restart_hypnotoad`);
 		} catch(err){
 			return reject(`restart_apache::${err}`)
 		}
 		return resolve();
+	});
+}
+
+
+/**
+ * gets a recursive list of all remote files given a path
+ */
+async function get_remote_file_tree({path, from_name='get_remote_file_tree'}) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const result = await execute_remote_command(`find ${path}. -print`, null, `${from_name}::get_remote_file_tree`, true);
+		
+			// split into an array of file paths, remove folders, and remote relative path markerLBS071150001
+			const files = result.split(path)
+				.filter(file => /\.[a-zA-Z]{2,4}$/g.test(file))
+				.map(file => /^\.\//.test(file) ? file.substring(2) : file);
+			return resolve(files);
+		} catch(err){
+			return reject(`get_remote_file_tree::${err}`)
+		}
 	});
 }
 
@@ -184,5 +205,6 @@ module.exports = {
 	delete_remote_repo,
 	delete_remote_file,
 	delete_remote_directory,
-	make_remote_directory
+	make_remote_directory,
+	get_remote_file_tree
 };

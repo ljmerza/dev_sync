@@ -6,6 +6,7 @@ const {exec} = require('node-exec-promise');
 const config = require('./../config');
 const remote_commands = require('./remote_commands');
 const sync_helpers = require('./sync_helpers');
+const formatting = require('./formatting');
 
 // array of log files -> [remote path, remote log file name, local remote file name]
 let log_files = [
@@ -41,14 +42,7 @@ async function _sync_logs(log_files) {
  */
 async function sync_logs_interval() {
 	let check_sync = true; // only allow one sync operation at a time
-
-	const formatted_log_files = log_files.map(file => {
-		const relative_file_path = file[0];
-		const remote_file_name = file[1];
-		const local_file_name = file[2];
-		const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
-		return {local_file_name, absolute_remote_path, relative_file_path}
-	});
+	const formatted_log_files = formatting.formatLogFiles(log_files);
 
 	setInterval(async () => {
 		try {

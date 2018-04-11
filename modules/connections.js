@@ -117,7 +117,7 @@ async function override_connection(connection, is_sftp=false, from_name='overrid
 		connections.push({symbol, connection});
 		
 		// make sure we don't have more than 5 connections
-		if(connections.length > 5) {
+		if(debug && connections.length > 5) {
 			console.log('Too Many Connections!');
 			await kill_all_connections();
 		}
