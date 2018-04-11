@@ -169,7 +169,7 @@ async function kill_all_connections(){
 }
 
 /**
- * syncs a file from server to host
+ * syncs a file from server to local
  * @param {Object} file contains absolute_remote_path, local_file_name, and relative_file_path properties
  * @param {Object} sftp_connection optional connection to use (will create/close its own if not given)
  */
