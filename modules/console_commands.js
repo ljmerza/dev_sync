@@ -131,8 +131,12 @@ process.stdin.on('keypress', async function (ch, key) {
 			return;
 
 		// clear console
-		} else if ( key_presses.match(/^[clear]|c$/i) ) {
+		} else if ( key_presses.match(/^clear|c$/i) ) {
 			clear();
+			return;
+
+		} else if ( key_presses.match(/^test$/i) ) {
+			sync_helpers.get_local_file_tree() 
 			return;
 		}
 

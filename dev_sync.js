@@ -5,7 +5,6 @@ const path = require('path');
 const fs = require('fs');
 const Promise = require("bluebird");
 const chokidar = require('chokidar');
-// const memwatch = require('memwatch-next');
 
 const connect_module = require("./modules/connections");
 const formatting = require("./modules/formatting");
@@ -48,8 +47,6 @@ function watch_repos() {
 		.on('unlinkDir', path => add_to_sync(path, 'unlinkDir', element.repo))
 		.on('error', error => console.log('watcher ERROR: ', error))
 		.on('ready', () => console.log('	', element.dir));
-
-
 
 		function add_to_sync(local_path, action, repo){
 			changed_files.push({local_path, repo, action});
@@ -96,30 +93,9 @@ async function sftp_upload() {
 	});
 }
 
-
 /**
  * catch all errors here
  */
 process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err);
 });
-
-/**
-* detect memory leaks for debugging
-*/
-// memwatch.on('leak', (info) => {
-//   console.error('Memory leak detected:\n', info);
-// });
-// memwatch.on('stats', (info) => {
-//   console.error('Memory stats:\n', info);
-// });
-
-// // diff the heap after X ms
-// let hd = new memwatch.HeapDiff();
-// setTimeout( () => {
-// 	const diff = hd.end();
-// 	console.log('heap diff:\n', diff);
-// }, 1000*60*5) 
-
-
-

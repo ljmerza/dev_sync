@@ -199,6 +199,21 @@ async function get_remote_file_tree({path, from_name='get_remote_file_tree'}) {
 	});
 }
 
+/**
+ * deletes a remote folder or file
+ * @param {string} remote_path
+ */
+async function delete_remote(remote_path){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await remote_commands.execute_remote_command(`rm -rf ${remote_path}`);
+			return resolve();
+		} catch(err){
+			return reject(`delete_remote::${err}`);
+		}
+	});
+}
+
 
 module.exports = {
 	restart_apache,
@@ -209,5 +224,6 @@ module.exports = {
 	delete_remote_file,
 	delete_remote_directory,
 	make_remote_directory,
-	get_remote_file_tree
+	get_remote_file_tree,
+	delete_remote
 };
