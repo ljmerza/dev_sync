@@ -1,7 +1,8 @@
 const connect_module = require("./connections");
 const formatting = require('./formatting');
 const remote_commands = require('./remote_commands');
-const config = require('./../config');
+const {create_progress, update_progress} = require('./progress');
+const {chunk_files, async_for_each} = require('./tools');
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
@@ -11,38 +12,7 @@ const streamEqual = require('stream-equal');
 const { exec } = require('child_process');
 const { createReadStream, existsSync } = require('fs');
 
-let bar_object;
 
-/**
- * splits an array up into chunks
- * @param {integer} length
- * @return {Array<Array<any>>} an array of array chunks
- */
-function chunk(arr, n) {
-	return Array(Math.ceil(arr.length/n))
-		.fill()
-		.map((_,i) => arr.slice(i*n,i*n+n));
-}
-
-/**
- * creates a gauge animation
- */
-function create_progress(number_of_files){
-	bar_object = new ProgressBar(':bar :percent :token1', { 
-		total: number_of_files,
-		clear: true,
-		complete: '#',
-		width: 20
-	});
-}
-
-/**
- * updates pulse animation
- * @param {object} object_data
- */
-function update_progress(file_name){
-	bar_object.tick({token1: file_name});
-}
 
 /**
  * syncs all files to server
@@ -77,28 +47,6 @@ async function _process_synced_ojects(all_files_data){
 			})
 		}
 	}
-}
-
-
-/**
- * takes an array and breaks it up into an array of arrays
- * @param {object} files
- * @param {number} split_length
- */
-function chunk_files(files, split_length=8){
-
-	const chunk_length = parseInt(files.length / split_length);
-
-	// if we have less then chunk_size then just use one chunk else
-	// split up all files to upload multiple files at once
-	let file_chunks;
-	if(chunk_length == 0){
-		file_chunks = [files];
-	} else {
-		file_chunks = chunk(files, chunk_length);
-	}
-
-	return [file_chunks, file_chunks.length, 0]
 }
 
 /**
@@ -225,15 +173,6 @@ async function get_local_file_tree({local_path, remote_base_path, repo}){
 			return resolve(files_to_upload);
 		});
 	})
-}
-
-/**
- * async compatible for each looping
- */
-async function async_for_each(array, callback) {
-	for (let index = 0; index < array.length; index++) {
-		await callback(array[index], index, array)
-	}
 }
 
 /**
@@ -376,10 +315,8 @@ async function async_sync(files, chunk_length, sync_function, from_name){
 module.exports = {
 	sync_objects,
 	transfer_repo,
-	async_for_each,
 	needs_sync,
 	get_remote_file,
-	chunk_files,
 	sync_remote_to_local,
 	async_sync,
 	get_local_file_tree
