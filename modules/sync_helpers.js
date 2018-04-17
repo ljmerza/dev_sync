@@ -282,7 +282,6 @@ async function sync_remote_to_local({file, connections, from_name=''}) {
  */
 async function async_sync(files, chunk_length, sync_function, from_name){
 	return new Promise(async (resolve, reject) => {
-		let connections = await connect_module.sftp_connection_promise('async_sync');
 		let show_progress_bar = files.length && files[0].sync_repo;
 
 		try {
@@ -291,22 +290,24 @@ async function async_sync(files, chunk_length, sync_function, from_name){
 			let files_uploaded = 0;
 			let [file_chunks, number_of_chunks, processed_chunks] = chunk_files(files, 5);
 
-			file_chunks.forEach(async file_chunk => {
-				await async_for_each(file_chunk, async file => {
+			file_chunks.forEach(async chunk_of_files => {
+				let connections = await connect_module.sftp_connection_promise('async_sync');
+
+				await async_for_each(chunk_of_files, async file => {
 					let message = await sync_function({file, connections, from_name});
 					files_uploaded++;
 					if(show_progress_bar) update_progress(file.local_file_path);
 					sync_results.push(message);
 				});
+				
+				connect_module.close_connections(connections);
 
 				if(++processed_chunks === number_of_chunks){
-					connect_module.close_connections(connections);
 					return resolve(sync_results);
 				};
 			});
 
 		} catch(err) {
-			connect_module.close_connections(connections);
 			return reject(`async_sync::${err}`);
 		}
 	});
