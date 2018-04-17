@@ -28,7 +28,7 @@ let log_files = [
 async function _sync_logs(log_files) {
 	return new Promise( async (resolve, reject) => {
 		try {
-			const result = await sync_helpers.async_sync(log_files, 4, sync_helpers.sync_remote_to_local, '_sync_logs');
+			const result = await sync_helpers.sync_chunks(log_files, 4, sync_helpers.sync_remote_to_local, '_sync_logs');
 			return resolve(result);
 		} catch(err){
 			return reject(`_sync_logs::${err}`);

@@ -24,11 +24,11 @@ async function async_for_each(array, callback) {
 /**
  * takes an array and breaks it up into an array of arrays
  * @param {object} files
- * @param {number} split_length
+ * @param {number} number_of_chunks
  */
-function chunk_files(files, split_length=8){
+function chunk_files(files, number_of_chunks=8){
 
-	const chunk_length = parseInt(files.length / split_length);
+	const chunk_length = parseInt(files.length / number_of_chunks);
 
 	// if we have less then chunk_size then just use one chunk else
 	// split up all files to upload multiple files at once
@@ -39,7 +39,7 @@ function chunk_files(files, split_length=8){
 		file_chunks = chunk(files, chunk_length);
 	}
 
-	return [file_chunks, file_chunks.length, 0]
+	return file_chunks;
 }
 
 modole.exports = {chunk, chunk_files, async_for_each};
