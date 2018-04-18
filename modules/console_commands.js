@@ -145,10 +145,9 @@ process.stdin.on('keypress', async function (ch, key) {
 			// sync repo
 			if(local_path) {
 				console.log(`syncing ${repo_name}...`);
-				await sync_helpers.transfer_repo({local_path, remote_base_path:remote_path, repo_name});
+				await sync_helpers.transfer_repo({local_path, remote_base_path:remote_path, repo:repo_name});
 
 			} else if(command) {
-				console.log('command: ', command);
 				// custom commands, deleting folders, restarting repos
 				if(repo_name.match('custom command')) console.log(repo_name); 	
 				else if(repo_name.match('modules')) console.log(`deleting ${repo_name} folder...`);

@@ -21,7 +21,7 @@ let changed_files = []; // array of changed files than need to be uploaded
 let current_timer = setTimeout(()=>{},0);
 
 // watch_repos();
-logs.sync_logs_interval();
+// logs.sync_logs_interval();
 
 
 
@@ -36,7 +36,7 @@ function watch_repos() {
 	.forEach( element => {
 
 		chokidar.watch(path.join(__dirname, element.dir), {
-			ignored: /\.git/,
+			ignored: /\.git|node_modules|bower_components/,
 			persistent: true,
 			ignoreInitial: true,
 		})

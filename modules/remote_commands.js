@@ -107,11 +107,10 @@ async function update_permissions(uploaded_files, from_name, connections) {
 async function execute_remote_command(command, connections, from_name='execute_remote_command', return_result=false) {
 	return new Promise(async (resolve, reject) => {
 		let close_connection = !connections;
-		connections = await connect_module.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
-
 		let return_value = '';
 		try {
-			// once uploaded array is empty then execute command to reset permissions
+			connections = await connect_module.check_ssh_connection(connections, `${from_name}::execute_remote_command`);
+
 			connections.ssh_connection.exec(command, (err, stream) => {
 				if(err) return reject(`stream error execute_remote_command::${err}`);
 
@@ -135,6 +134,7 @@ async function execute_remote_command(command, connections, from_name='execute_r
 					return resolve(return_value);
 				});
 			});
+
 		} catch(err) {
 			if(close_connection) connect_module.close_connections(connections);
 			return reject(`execute_remote_command::${err}`);
@@ -179,22 +179,24 @@ async function restart_apache({connections, from_name='restart_apache'}) {
 	});
 }
 
-
 /**
  * gets a recursive list of all remote files given a path
  */
-async function get_remote_file_tree({path, from_name='get_remote_file_tree'}) {
+async function getRemoteFileTree({path, from_name='getRemoteFileTree'}) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const result = await execute_remote_command(`find ${path}. -print`, null, `${from_name}::get_remote_file_tree`, true);
+			const result = await execute_remote_command(`find ${path}/. -print`, null, `${from_name}::getRemoteFileTree`, true);
 		
-			// split into an array of file paths, remove folders, and remote relative path markerLBS071150001
+			// split into an array of file paths, remove folders, 
+			// remote relative path marker, and filter out ignored files
 			const files = result.split(path)
 				.filter(file => /\.[a-zA-Z]{2,4}$/g.test(file))
-				.map(file => /^\.\//.test(file) ? file.substring(2) : file);
+				.map(file => `${path}${file.substring(2)}`)
+				.filter(file => !/\/.git\/|\/bower_components\/|\/node_modules\/|\/tmp\//.test(file));
+
 			return resolve(files);
 		} catch(err){
-			return reject(`get_remote_file_tree::${err}`)
+			return reject(`getRemoteFileTree::${err}`)
 		}
 	});
 }
@@ -224,6 +226,6 @@ module.exports = {
 	delete_remote_file,
 	delete_remote_directory,
 	make_remote_directory,
-	get_remote_file_tree,
+	getRemoteFileTree,
 	delete_remote
 };

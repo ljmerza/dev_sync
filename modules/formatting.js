@@ -60,7 +60,7 @@ module.exports.format_paths = function(changed_file) {
 	// these repos require the object path to be stripped to concat with the base path
 	if(['modules', 'external_modules', 'dev_scripts'].includes(repo))
 		file_path_strip = 2;
-	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(repo) )
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(repo) )
 		file_path_strip = 3;
 	else if(['ud'].includes(repo)) 
 		file_path_strip = 4;
@@ -155,4 +155,9 @@ module.exports.formatLogFiles = function(log_files){
 function _generateAbsoluteLocalPath({local_file_path}){
 	return join(__dirname, '..',`${local_file_path}`)
 		.replace(/\//g,'\\');
+}
+
+
+module.exports.filterNodeAndGitFiles = function({files}){
+	return files.filter(file => !/\\\.git\\|\\node_modules\\|\\tmp\\|\\bower_components\\/.test(file));
 }
