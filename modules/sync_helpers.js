@@ -1,8 +1,9 @@
 const connect_module = require("./connections");
 const formatting = require('./formatting');
 const remote_commands = require('./remote_commands');
-const { update_progress, create_progress } = require('./progress_bar');
-const { async_for_each, chunk_files } = require('./tools');
+
+const {create_progress, update_progress} = require('./progress');
+const {chunk_files, async_for_each} = require('./tools');
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
@@ -11,7 +12,6 @@ const streamEqual = require('stream-equal');
 const { exec } = require('child_process');
 const { createReadStream, existsSync } = require('fs');
 
-let bar_object;
 
 
 /**
@@ -21,7 +21,7 @@ let bar_object;
 async function sync_objects(all_files_data) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const result = await async_sync(all_files_data, 8, sync_object, 'sync_objects');
+			const result = await sync_chunks(all_files_data, 8, sync_object, 'sync_objects');
 			await _process_synced_ojects(all_files_data);
 			return resolve(result);
 		} catch(error){
@@ -47,6 +47,21 @@ async function _process_synced_ojects(all_files_data){
 			})
 		}
 	}
+}
+
+/**
+ * deletes a remote folder or file
+ * @param {string} remote_path
+ */
+async function delete_remote(remote_path){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await remote_commands.execute_remote_command(`rm -rf ${remote_path}`);
+			return resolve();
+		} catch(err){
+			return reject(`delete_remote::${err}`);
+		}
+	});
 }
 
 /**
@@ -264,34 +279,36 @@ async function sync_remote_to_local({file, connections, from_name=''}) {
  * @param {number} chunk_length
  * @param {Object} sftp_connection
  */
-async function async_sync(files, chunk_length, sync_function, from_name){
+async function sync_chunks(files, chunk_length, sync_function, from_name){
 	return new Promise(async (resolve, reject) => {
-		let connections = await connect_module.sftp_connection_promise('async_sync');
-		let show_progress_bar = files.length && files[0].sync_repo;
 
 		try {
-			if(show_progress_bar) create_progress(files.length);
+			create_progress(files.length);
 			let sync_results = [];
 			let files_uploaded = 0;
-			let [file_chunks, number_of_chunks, processed_chunks] = chunk_files(files, 5);
+			let processed_chunks = 0;
+			const number_of_chunks = 5;
 
-			file_chunks.forEach(async file_chunk => {
-				await async_for_each(file_chunk, async file => {
+			chunk_files({files, number_of_chunks})
+			.forEach(async chunk_of_files => {
+				let connections = await connect_module.sftp_connection_promise('sync_chunks');
+
+				async_for_each(chunk_of_files , async file => {
 					let message = await sync_function({file, connections, from_name});
 					files_uploaded++;
-					if(show_progress_bar) update_progress(file.local_file_path);
+					update_progress(file.local_file_path);
 					sync_results.push(message);
 				});
+				
+				connect_module.close_connections(connections);
 
 				if(++processed_chunks === number_of_chunks){
-					connect_module.close_connections(connections);
 					return resolve(sync_results);
 				};
 			});
 
 		} catch(err) {
-			connect_module.close_connections(connections);
-			return reject(`async_sync::${err}`);
+			return reject(`sync_chunks::${err}`);
 		}
 	});
 }
@@ -302,6 +319,6 @@ module.exports = {
 	needs_sync,
 	get_remote_file,
 	sync_remote_to_local,
-	async_sync,
+	sync_chunks,
 	get_local_file_tree
 };

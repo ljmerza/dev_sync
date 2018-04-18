@@ -5,7 +5,7 @@
  * @param {integer} length
  * @return {Array<Array<any>>} an array of array chunks
  */
-function _chunk(arr, n) {
+function chunk(arr, n) {
 	return Array(Math.ceil(arr.length/n))
 		.fill()
 		.map((_,i) => arr.slice(i*n,i*n+n));
@@ -14,11 +14,11 @@ function _chunk(arr, n) {
 /**
  * takes an array and breaks it up into an array of arrays
  * @param {object} files
- * @param {number} split_length
+ * @param {number} number_of_chunks
  */
-function chunk_files(files, split_length=8){
+function chunk_files({files, number_of_chunks=8}){
 
-	const chunk_length = parseInt(files.length / split_length);
+	const chunk_length = parseInt(files.length / number_of_chunks);
 
 	// if we have less then chunk_size then just use one chunk else
 	// split up all files to upload multiple files at once
@@ -26,7 +26,7 @@ function chunk_files(files, split_length=8){
 	if(chunk_length == 0){
 		file_chunks = [files];
 	} else {
-		file_chunks = _chunk(files, chunk_length);
+		file_chunks = chunk(files, chunk_length);
 	}
 
 	return [file_chunks, file_chunks.length, 0]
@@ -41,4 +41,4 @@ async function async_for_each(array, callback) {
 	}
 }
 
-module.exports = { async_for_each, chunk_files };
+module.exports = {chunk, chunk_files, async_for_each};
