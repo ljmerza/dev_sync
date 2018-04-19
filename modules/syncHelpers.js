@@ -1,0 +1,480 @@
+const {exec} = require('child_process');
+const {createReadStream, existsSync} = require('fs');
+
+const recursive = require("recursive-readdir");
+const Promise = require("bluebird");
+const streamEqual = require('stream-equal');
+
+const {
+	checkSftpConnection, closeConnections,
+	checkBothConnections, sftpConnectionPromise
+} = require("./connections");
+
+const {
+	executeRemoteCommand, deleteRemoteFile,
+	makeRemoteDirectory, deleteRemoteDirectory,
+	getRemoteFileTree
+} = require('./remoteCommands');
+
+const {
+	getAbsoluteRemoteAndLocalPaths, stripRemotePathForDisplay, 
+	filterNodeAndGitFiles
+} = require('./formatting');
+
+const {createProgress, updateProgress} = require('./progress');
+const {chunkFiles, asyncForEach} = require('./tools');
+
+
+/**
+ * syncs all files to server
+ * @param {object} remotePath
+ */
+async function syncObjects(allFilesData) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const result = await syncChunks(allFilesData, 8, syncObject, 'syncObjects', true);
+			await processSyncedOjects(allFilesData);
+			return resolve(result);
+		} catch(error){
+			return reject(`syncObjects::${error}`); 
+		}
+	});
+}
+
+/**
+ * logs files processed
+ * @param {object} allFilesData
+ */
+async function processSyncedOjects(allFilesData){
+	// then log files synced
+	if(allFilesData.length > 0) {
+		const multiple = allFilesData.length == 1 ? '' : 's';
+		console.log(`${allFilesData.length} object${multiple} processed`);
+		// if not from a repo sync then show all files synced
+		if(allFilesData.length > 0 && !allFilesData[0].syncRepo){
+			allFilesData.forEach(file => {
+		console.log('file: ', file);
+				console.log(    `${file.action} -> ${stripRemotePathForDisplay(file.remoteBasePath)}`);
+			})
+		}
+	}
+}
+
+/**
+ * deletes a remote folder or file
+ * @param {string} remotePath
+ */
+async function deleteRemote(remotePath){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await executeRemoteCommand(`rm -rf ${remotePath}`);
+			return resolve();
+		} catch(err){
+			return reject(`deleteRemote::${err}`);
+		}
+	});
+}
+
+/**
+ * syncs an object to the remote server
+ * @param {object} file
+ * @param {ssh connection} connection
+ */
+async function syncObject({file, connections, fromName}) {
+	switch(file.action){
+		case 'change':
+		case 'sync':
+			return await syncLocalToRemote({file, connections, fromName: `${fromName}::syncObject`});
+		case 'unlink':
+			return await deleteRemoteFile({remotePath:file.remotePath, connections, fromName});
+		case 'addDir':
+			return await makeRemoteDirectory(file.basePath, connections, fromName);
+		case 'unlinkDir':
+			return await deleteRemoteDirectory(file.basePath, connections, fromName);
+	}
+}
+
+/**
+ * syncs a file to the remote server
+ * @param {object} file
+ * @param {ssh connection} connection
+ */
+async function syncLocalToRemote({file, connections, fromName='syncLocalToRemote'}){
+	return new Promise(async (resolve, reject) => {
+		let closeConnection = !connections;
+		try {
+			connections = await checkBothConnections(connections);
+			await makeRemoteDirectory(file.remoteBasePath, connections);
+
+			const result = await setRemoteFile({
+				absoluteRemotePath: file.absoluteRemotePath, 
+				absoluteLocalPath: file.absoluteLocalPath, 
+				localBasePath: file.localBasePath,
+				localFilePath: file.localFilePath, 
+				connections, 
+				fromName
+			});
+
+			return resolve(result);
+		} catch(err) {
+			if(closeConnection) closeConnections(connections);
+			return reject(`syncLocalToRemote::${err}::${file.localPath}`);
+		}
+	});
+}
+
+/**
+ * compares a local and remote file
+ * @param {string} absoluteLocalPath 
+ * @param {string} absoluteRemotePath 
+ * @param {string} connections 
+ * @return {boolean} are the files the same?
+ */
+async function needsSync({absoluteLocalPath, absoluteRemotePath, connections}){
+	return new Promise(async (resolve, reject) => {
+		let closeConnection = !connections;
+		try {
+			connections = await checkSftpConnection(connections);
+			const isEqual = await areFileSteamsEqual({
+				connections,
+				absoluteLocalPath: absoluteLocalPath, 
+				absoluteRemotePath: absoluteRemotePath, 
+			});
+
+			if(closeConnection) closeConnections(connections);
+			return resolve(!isEqual);
+
+		} catch(err) {
+			if(closeConnection) closeConnections(connections);
+			return reject(`needsSync::${err}`);
+		}
+	});
+}
+
+/**
+ * upload a repo to the server
+ * @param {string} localPath
+ * @param {string} remoteBasePath
+ * @param {string} repo
+ */
+async function transferRepo({localPath, remoteBasePath, repo}) {
+	return new Promise( async (resolve, reject) => {
+		try {
+
+			// get local and remote files list
+			console.log('Getting local file list...');
+			const localFiles = await getLocalFileTree({localPath});
+			const filteredLocalFiles = filterNodeAndGitFiles({files:localFiles});
+
+			console.log('Getting remote file list...');
+			const remoteFiles = await getRemoteFileTree({path:remoteBasePath});
+
+			// format local files then get all remote files that don't exist locally
+			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});
+			const absoluteRemoteFiles = formattedFiles.map(file => file.absoluteRemotePath);
+			const remoteFilesToDelete = remoteFiles.filter(x => !absoluteRemoteFiles.includes(x));
+
+			if(remoteFilesToDelete.length > 0){
+				const plural = remoteFilesToDelete.length === 1 ? '' : 's';
+				console.log(`Deleting ${remoteFilesToDelete.length} extra remote file${plural}...`);
+				await bulkDeleteRemoteFiles({remoteFilesToDelete});
+			}
+			
+
+			// filter out any files that already are synced
+			console.log('Comparing files...');
+			const filesToSync = await findFilesToSync({formattedFiles});
+
+			// checking if any files need to be synced
+			if(filesToSync.length > 0){
+				const plural = filesToSync.length === 1 ? '' : 's';
+				console.log(`Syncing ${filesToSync.length} file${plural}...`);
+				const filedSynced = await syncObjects(filesToSync);
+				return resolve(filedSynced);
+			} else {
+				console.log('All files already synced!');
+				return resolve();
+			}
+			
+		} catch(err){
+			return reject(`transferRepo::${err}`);
+		}  
+	});	
+}
+
+/**
+ *
+ * @param {Array<Object>} formattedFiles
+ */
+async function findFilesToSync({formattedFiles}){
+	let filesToSync = [];
+	let processedChunks = 0;
+
+	return new Promise((resolve, reject) => {
+		try {
+			const fileChunks = chunkFiles({files:formattedFiles, numberOfChunks: 8});
+
+			fileChunks.forEach(async chunkOfFiles => {
+				let connections = await sftpConnectionPromise('syncChunks');
+
+				await asyncForEach(chunkOfFiles , async file => {
+					const isEqual = await areFileSteamsEqual({
+						connections,
+						absoluteLocalPath:file.absoluteLocalPath, 
+						absoluteRemotePath:file.absoluteRemotePath
+					});
+
+					if(!isEqual) filesToSync.push(file);
+				});
+				
+				closeConnections(connections);
+				if(++processedChunks === fileChunks.length){
+					return resolve(filesToSync);
+				};
+			});
+
+		} catch(err){
+			return reject(`findFilesToSync::${err}`);
+		}
+	});
+}
+
+/**
+ *
+ */
+async function chunkOperation({files, operation, operationArgs={}}){
+	let filesToSync = [];
+	let processedChunks = 0;
+
+	return new Promise((resolve, reject) => {
+		try {
+			const fileChunks = chunkFiles({files, numberOfChunks: 8});
+
+			fileChunks.forEach(async chunkOfFiles => {
+				let connections = await sftpConnectionPromise('chunkOperation');
+
+				await asyncForEach(chunkOfFiles , async file => {
+					console.log('file: ', file);
+					await operation({file, connections, ...operationArgs});
+				});
+				
+				closeConnections(connections);
+				if(++processedChunks === fileChunks.length){
+					return resolve(filesToSync);
+				};
+			});
+
+		} catch(err){
+			return reject(`chunkOperation::${err}`);
+		}
+	});
+}
+
+async function bulkDeleteRemoteFiles2({remoteFilesToDelete}){
+	return await chunkOperation({files:remoteFilesToDelete, operation:deleteRemoteFile});
+}
+
+/**
+ *
+ * @param {Array<string>} remoteFilesToDelete
+ */
+async function bulkDeleteRemoteFiles({remoteFilesToDelete}){
+	let filesToSync = [];
+	let processedChunks = 0;
+
+	return new Promise((resolve, reject) => {
+		try {
+			const fileChunks = chunkFiles({files:remoteFilesToDelete, numberOfChunks: 8});
+
+			fileChunks.forEach(async chunkOfFiles => {
+				let connections = await sftpConnectionPromise('bulkDeleteRemoteFiles');
+
+				await asyncForEach(chunkOfFiles , async file => {
+					await deleteRemoteFile({remotePath:file, connections, fromName:'bulkDeleteRemoteFiles'});
+
+				});
+				
+				closeConnections(connections);
+				if(++processedChunks === fileChunks.length){
+					return resolve(filesToSync);
+				};
+			});
+
+		} catch(err){
+			return reject(`bulkDeleteRemoteFiles::${err}`);
+		}
+	});
+}
+
+/**
+ *
+ * @param {string} localPath
+ * @param {string} remoteBasePath
+ * @param {string} repo
+ */
+async function getLocalFileTree({localPath}){
+	return new Promise((resolve, reject) => {
+		recursive(localPath, async (err, files) => {
+			if(err) return reject(`getLocalFileTree::${err}`);
+			return resolve(files);
+		});
+	})
+}
+
+/**
+ * takes two file streams and compares them
+ */
+async function areFileSteamsEqual({absoluteLocalPath, absoluteRemotePath, connections}){
+	return new Promise(async (resolve, reject) => {
+		let closeConnection = !connections;
+
+		try {
+			connections = await checkSftpConnection(connections, 'areFileSteamsEqual');
+
+			const readStreamLocal = createReadStream(absoluteLocalPath);
+			const readStreamRemote = connections.sftpConnection.createReadStream(absoluteRemotePath);
+
+			streamEqual(readStreamLocal, readStreamRemote, (err, equal) => {
+				if(closeConnection) closeConnections(connections);
+
+				if(err) {
+					err = `${err}`;
+					if(/No such file/.test(err)) return resolve(false);
+					return reject(`areFileSteamsEqual::${err}`);
+				}
+
+				return resolve(equal);
+			});
+		} catch(err){
+			if(closeConnection) closeConnections(connections);
+			return reject(`areFileSteamsEqual::${err}`)
+		}
+		
+	});
+}
+
+/**
+ * gets a remote file and syncs it to a local file
+ */
+async function getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePath, connections}){
+	return new Promise(async (resolve, reject) => {
+		let closeConnection = !connections;
+		try {
+
+			connections = await checkSftpConnection(connections, 'getRemoteFile');
+			connections.sftpConnection.fastGet(absoluteRemotePath, absoluteLocalPath, err => {
+				if(err) return reject(`fastGet getRemoteFile::${err}`);
+				if(closeConnection) closeConnections(connections);
+				return resolve(`synced ${localBasePath} from remote`);
+			});
+		} catch(err){
+			if(closeConnection) closeConnections(connections);
+			return reject(`getRemoteFile::${err}`);
+		}
+	});
+}
+
+/**
+ * gets a remote file and syncs it to a local file
+ */
+async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePath, localFilePath, connections, fromName='setRemoteFile'}){
+	return new Promise(async (resolve, reject) => {
+		let closeConnection = !connections;
+
+		try {
+			connections = await checkSftpConnection(connections, 'setRemoteFile');
+			connections.sftpConnection.fastPut(absoluteLocalPath, absoluteRemotePath, err => {
+				if(err) return reject(`${fromName}::setRemoteFile::fastPut::${err}`);
+				if(closeConnection) closeConnections(connections);
+				return resolve(`synced ${localFilePath} to remote`);
+			});
+
+		} catch(err){
+			if(closeConnection) closeConnections(connections);
+			return reject(`setRemoteFile::${fromName}::${err}`);
+		}
+	});
+}
+
+/**
+ * syncs a file from server to host
+ * @param {Object} file contains absoluteRemotePath, absoluteLocalPath, remoteBasePath, and localBasePath properties
+ * @param {Object} sftpConnection optional connection to use (will create/close its own if not given)
+ */
+async function syncRemoteToLocal({file, connections, fromName=''}) {
+	return new Promise(async (resolve, reject) => {
+		const {absoluteRemotePath, absoluteLocalPath, localBasePath, remoteBasePath} = file;
+
+		let closeConnections = !connections;
+		connections = await checkBothConnections(connections, 'syncRemoteToLocal');
+
+		try {
+			// try to create remote folder/file if doesn't exist
+			await executeRemoteCommand(`mkdir -p ${localBasePath}`, connections, `${fromName}::syncRemoteToLocal`, true); 
+			await executeRemoteCommand(`touch ${absoluteRemotePath}`, connections, `${fromName}::syncRemoteToLocal`);
+
+			// create local file if doesn't exist
+			if (!existsSync(absoluteLocalPath)) {
+				await exec(`touch ${absoluteLocalPath}`);
+			}
+
+			// sync remote to local
+			let syncedMessage = '';
+			const needSync = await needsSync({absoluteLocalPath, absoluteRemotePath, connections});
+			if(needSync) syncedMessage = await getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePath, connections});
+
+			if(closeConnections) closeConnections(connections);
+			return resolve(syncedMessage);
+
+		} catch(err){
+			if(closeConnections) closeConnections(connections);
+			return reject(`syncRemoteToLocal::${err}`);
+		}	
+	});
+}
+
+/**
+ * breaks an array of files into chunks and syncs them from remote to local
+ * @param {Array<Object>} files
+ * @param {number} numberOfChunks
+ * @param {Object} sftpConnection
+ */
+async function syncChunks(files, numberOfChunks, syncFunction, fromName, showProgress=false){
+	return new Promise(async (resolve, reject) => {
+
+		try {
+			if(showProgress) createProgress(files.length);
+			let syncResults = [];
+			let filesUploaded = 0;
+			let processedChunks = 0;
+
+			const fileChunks = chunkFiles({files, numberOfChunks});
+			fileChunks.forEach(async chunkOfFiles => {
+				let connections = await sftpConnectionPromise('syncChunks');
+
+				await asyncForEach(chunkOfFiles , async file => {
+					let message = await syncFunction({file, connections, fromName});
+					filesUploaded++;
+					if(showProgress) updateProgress(file.localFilePath || file.localBasePath);
+					syncResults.push(message);
+				});
+				
+				closeConnections(connections);
+				if(++processedChunks === fileChunks.length){
+					return resolve(syncResults);
+				};
+			});
+
+		} catch(err) {
+			return reject(`syncChunks::${err}`);
+		}
+	});
+}
+
+module.exports = {
+	syncObjects, processSyncedOjects, deleteRemote, 
+	syncObject, syncLocalToRemote, needsSync, transferRepo, 
+	findFilesToSync, chunkOperation, bulkDeleteRemoteFiles2, 
+	bulkDeleteRemoteFiles, getLocalFileTree, areFileSteamsEqual, 
+	getRemoteFile, setRemoteFile, syncRemoteToLocal, syncChunks
+}

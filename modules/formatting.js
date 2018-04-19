@@ -2,88 +2,82 @@ const config = require('./../config');
 const { join, dirname } = require('path');
 
 // what is the folder depth of the base path to all watched files?
-const base_path_depth = join(__dirname, '../..').split('\\').length-1;
+const basePathDepth = join(__dirname, '../..').split('\\').length-1;
 
 /**
  * formats a local file path for remote path
- * @param {string} local_path
- * @param {integer} slice_number
+ * @param {string} localPath
+ * @param {integer} sliceNumber
  * @param {string} repo
  */
-function format_remote_path(local_path, slice_number, repo) {
+function formatRemotePath({localPath, sliceNumber, repo}) {
 
 	// change capitalization of UD if needed
-	if(local_path.match(/\\ud_api\\/)){
-		local_path = local_path.replace('ud_api', 'UD_api');
-	} else if(local_path.match(/\\ud\\/)){
-		local_path = local_path.replace('\\ud\\', '\\UD\\');
+	if(localPath.match(/\\ud_api\\/)){
+		localPath = localPath.replace('ud_api', 'UD_api');
+	} else if(localPath.match(/\\ud\\/)){
+		localPath = localPath.replace('\\ud\\', '\\UD\\');
 	}
 	
 
 	// get remote path from local path
-	const remote_path = local_path.split('\\').slice(slice_number+base_path_depth).join('/');
+	const remotePath = localPath.split('\\').slice(sliceNumber+basePathDepth).join('/');
 
 	// return full remote path based on repo type
 	if(repo.match(/cron/)){
-		return `${config.remote_base}/crons/${repo}/${remote_path}`;
+		return `${config.remoteBase}/crons/${repo}/${remotePath}`;
 
 	} else if (['modules', 'external_modules', 'dev_scripts'].includes(repo)) {
 		// if modules repo
-		return `${config.remote_base}/includes/${remote_path}`;
+		return `${config.remoteBase}/includes/${remotePath}`;
 
 	} else if (repo === 'ud_ember') {
 		// if modules repo
-		return `${config.remote_base}/www/UD_ember/UD/${remote_path}`;
+		return `${config.remoteBase}/www/UD_ember/${remotePath}`;
 
 	} else if (repo === 'teamdbapi') {
 		// if modules repo
-		return `${config.remote_base}/www/teamdbapi/${remote_path}`;
+		return `${config.remoteBase}/www/teamdbapi/${remotePath}`;
 
 	} else {
 		// else any other repo
-		return `${config.remote_base}/www/${remote_path}`;
+		return `${config.remoteBase}/www/${remotePath}`;
 	}	
 }
 
 /**
  * formats local and remote file paths for sFTP
- * @param {object} changed_file
+ * @param {object} changedFile
  */
-module.exports.format_paths = function(changed_file) {
+function formatPaths(changedFile) {
 
-	// get path and repo name
-	let repo = changed_file.repo;
-	let local_path = changed_file.local_path;
-	let remote_path;
-	let file_path_strip = 1; // how many folders to strip from file path from beginning
+	 // how many folders to strip from file path from beginning
+	let sliceNumber = 1;
 
 	// these repos require the object path to be stripped to concat with the base path
-	if(['modules', 'external_modules', 'dev_scripts'].includes(repo))
-		file_path_strip = 2;
-	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(repo) )
-		file_path_strip = 3;
-	else if(['ud'].includes(repo)) 
-		file_path_strip = 4;
-	else if(['wam_cron'].includes(repo)) 
-		file_path_strip = 5;
+	if(['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
+		sliceNumber = 2;
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(changedFile.repo) )
+		sliceNumber = 3;
+	else if(['ud'].includes(changedFile.repo))
+		sliceNumber = 4;
+	else if(['wam_cron'].includes(changedFile.repo))
+		sliceNumber = 5;
 
-	// create remote path
-	remote_path = format_remote_path(local_path, file_path_strip, repo);
-
-	// return local/remote paths generated
-	return [local_path, remote_path];
+	const remotePath = formatRemotePath({localPath:changedFile.localPath, sliceNumber, repo:changedFile.repo});
+	return [changedFile.localPath, remotePath];
 }
 
 
 /**
  * makes sure file paths have proper folder structure for Windows/UNIX
- * @param {Array<object>} all_files_data
+ * @param {Array<object>} allFilesData
  */
-module.exports.format_files = function(all_files_data) {
-	return all_files_data.map( file => {
-		file.remote_path = file.remote_path.replace(/\\/g, '/');
-		file.local_path = file.local_path.replace(/\//g, '\\');
-		file.base_path = file.base_path.replace(/\\/g, '/');
+function formatFiles(allFilesData) {
+	return allFilesData.map( file => {
+		file.remotePath = file.remotePath.replace(/\\/g, '/');
+		file.localPath = file.localPath.replace(/\//g, '\\');
+		file.basePath = file.basePath.replace(/\\/g, '/');
 		return file;
 	});
 }
@@ -92,7 +86,7 @@ module.exports.format_files = function(all_files_data) {
  * formats the output from executing a command through ssh
  * @param {string} 
  */
-module.exports.formatServerStdOut = function(data){
+function formatServerStdOut(data){
 	data = `${data}`;
 	data = data.replace(/(\r\n|\n|\r)/gm,"");
 	return data;
@@ -101,63 +95,65 @@ module.exports.formatServerStdOut = function(data){
 /**
  * creates remote and local absoluate paths when syncing an entire repo
  * @param {Array<string>} files
- * @param {string} absolute_remote_path
- * @param {string} local_path
+ * @param {string} absoluteRemotePath
+ * @param {string} localPath
  * @param {string} repo
  */
-module.exports.getAbsoluteRemoteAndLocalPaths = function({files, remote_base_path, local_path, repo}){
-	const local_path_length = local_path.split('/').length;
+function getAbsoluteRemoteAndLocalPaths({files, remoteBasePath, localPath, repo}){
+	const localPathLength = localPath.split('/').length;
 
 	return files.map(file => {
-		let remote_path = file.split('\\').splice(local_path_length).join('/');
+		let remotePath = file.split('\\').splice(localPathLength).join('/');
 
-		const absolute_remote_path = `${remote_base_path}/${remote_path}`;
-		const remote_base_path_file = dirname(absolute_remote_path);
+		const absoluteRemotePath = `${remoteBasePath}/${remotePath}`;
+		const remoteBasePathFile = dirname(absoluteRemotePath);
 
-		const absolute_local_path = _generateAbsoluteLocalPath({local_file_path:file});
-		const local_base_path = dirname(absolute_local_path);			
+		const absoluteLocalPath = _generateAbsoluteLocalPath({localFilePath:file});
+		const localBasePath = dirname(absoluteLocalPath);			
 
 		return {
-			absolute_remote_path, 
-			absolute_local_path, 
-			local_base_path, 
-			repo, 
-			action: 'sync', 
-			sync_repo:true, 
-			remote_base_path:remote_base_path_file,
-			local_file_path: file.replace(/\\/g, '/').replace(/\.\.\//, '')
+			absoluteRemotePath, absoluteLocalPath, 
+			localBasePath, repo, action: 'sync', 
+			syncRepo:true, remoteBasePath:remoteBasePathFile,
+			localFilePath: file.replace(/\\/g, '/').replace(/\.\.\//, '')
 		};
 	});
 }
 
 /**
  * strips the base path of the remote path to console it once synced
- * @param {string} remote_path
+ * @param {string} remotePath
  */
-module.exports.stripRemotePathForDisplay = function(remote_path){
-	return remote_path.split('/').splice(3).join('/');
+function stripRemotePathForDisplay(remotePath){
+	return remotePath.split('/').splice(3).join('/');
 }
 
-module.exports.formatLogFiles = function(log_files){
-	return log_files.map(file => {
-		const relative_file_path = file[0];
-		const remote_file_name = file[1];
-		const local_file_path = file[2];
+function formatLogFiles(logFiles){
+	return logFiles.map(file => {
+		const relativeFilePath = file[0];
+		const remoteFileName = file[1];
+		const localFilePath = file[2];
 
-		const absolute_remote_path = `${config.remote_base}/${relative_file_path}/${remote_file_name}`;
-		const remote_base_path = `${config.remote_base}/${relative_file_path}`;
-		const absolute_local_path = _generateAbsoluteLocalPath({local_file_path});
+		const absoluteRemotePath = `${config.remoteBase}/${relativeFilePath}/${remoteFileName}`;
+		const remoteBasePath = `${config.remoteBase}/${relativeFilePath}`;
+		const absoluteLocalPath = _generateAbsoluteLocalPath({localFilePath});
 
-		return {absolute_local_path, absolute_remote_path, local_base_path:local_file_path, remote_base_path};
+		return {absoluteLocalPath, absoluteRemotePath, localBasePath:localFilePath, remoteBasePath};
 	});
 }
 
-function _generateAbsoluteLocalPath({local_file_path}){
-	return join(__dirname, '..',`${local_file_path}`)
+function _generateAbsoluteLocalPath({localFilePath}){
+	return join(__dirname, '..',`${localFilePath}`)
 		.replace(/\//g,'\\');
 }
 
 
-module.exports.filterNodeAndGitFiles = function({files}){
+function filterNodeAndGitFiles({files}){
 	return files.filter(file => !/\\\.git\\|\\node_modules\\|\\tmp\\|\\bower_components\\/.test(file));
 }
+
+module.exports = {
+	formatPaths, formatFiles, filterNodeAndGitFiles,
+	formatServerStdOut, getAbsoluteRemoteAndLocalPaths,
+	stripRemotePathForDisplay, formatLogFiles
+};

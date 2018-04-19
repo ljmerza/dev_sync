@@ -1,12 +1,12 @@
 const SSH2 = require('ssh2');
 const fs = require('fs');
 const config = require('./../config');
-let ppk_file;
+let ppkFile;
 const debug = false;
 
 // try to get PPK file
 try {
-	ppk_file = fs.readFileSync(config.ppk_file_path);
+	ppkFile = fs.readFileSync(config.ppkFilePath);
 } catch(err) {
 	throw Error(`No ppk file found: ${err}`);
 }
@@ -14,28 +14,27 @@ try {
 // keeps track of all connections for exiting application
 connections = [];
 
-/*
-*	ssh_connection_promise()
-* 		return a ssh connection promise
-*/
-async function ssh_connection_promise(from_name='ssh_connection_promise') {
+/**
+ * return a ssh connection promise
+ */
+async function sshConnectionPromise(fromName='sshConnectionPromise') {
 	return new Promise(async (resolve, reject) => {
 		// create ssh object
-		let ssh_connection = await override_connection(new SSH2(), false, from_name);
+		let sshConnection = await overrideConnection(new SSH2(), false, fromName);
 
 		// connect to server
-		ssh_connection.connect({
+		sshConnection.connect({
 			host: config.host,
 			port: config.port,
 			username: config.attuid,
-			privateKey: ppk_file
+			privateKey: ppkFile
 		});
 
-		ssh_connection.on('ready', () => {
-			resolve({ssh_connection});
+		sshConnection.on('ready', () => {
+			resolve({sshConnection});
 		});
 
-		ssh_connection.on('error', error => {
+		sshConnection.on('error', error => {
 			reject(error);
 		});
 	});
@@ -44,15 +43,15 @@ async function ssh_connection_promise(from_name='ssh_connection_promise') {
 /**
  *
  */
-async function check_sftp_connection(connections, from_name='check_sftp_connection'){
+async function checkSftpConnection(connections, fromName='checkSftpConnection'){
 	return new Promise(async (resolve, reject) => {
 		try {
-			if(!connections || !connections.sftp_connection) {
-				connections = await sftp_connection_promise(`${from_name}::check_sftp_connection`);
+			if(!connections || !connections.sftpConnection) {
+				connections = await sftpConnectionPromise(`${fromName}::checkSftpConnection`);
 			}
 			return resolve(connections);
 		} catch(err){
-			return reject(`check_sftp_connection::${err}`);
+			return reject(`checkSftpConnection::${err}`);
 		}
 	})
 }
@@ -60,15 +59,15 @@ async function check_sftp_connection(connections, from_name='check_sftp_connecti
 /**
  *
  */
-async function check_ssh_connection(connections, from_name='check_ssh_connection'){
+async function checkSshConnection(connections, fromName='checkSshConnection'){
 	return new Promise(async (resolve, reject) => {
 		try {
-			if(!connections || !connections.ssh_connection) {
-				connections = await ssh_connection_promise(`${from_name}::check_ssh_connection`);
+			if(!connections || !connections.sshConnection) {
+				connections = await sshConnectionPromise(`${fromName}::checkSshConnection`);
 			}
 			return resolve(connections);
 		} catch(err){
-			return reject(`check_ssh_connection::${err}`);
+			return reject(`checkSshConnection::${err}`);
 		}
 	})
 }
@@ -76,30 +75,30 @@ async function check_ssh_connection(connections, from_name='check_ssh_connection
 /**
  *
  */
-async function check_both_connections(connections, from_name='check_both_connections'){
-	const {ssh_connection} = await check_ssh_connection(connections, `${from_name}::check_both_connections`);
-	const {sftp_connection} = await check_sftp_connection(connections, `${from_name}::check_both_connections`);
-	return {ssh_connection, sftp_connection};
+async function checkBothConnections(connections, fromName='checkBothConnections'){
+	const {sshConnection} = await checkSshConnection(connections, `${fromName}::checkBothConnections`);
+	const {sftpConnection} = await checkSftpConnection(connections, `${fromName}::checkBothConnections`);
+	return {sshConnection, sftpConnection};
 }
 
 
 /*
-*	sftp_connection_promise()
+*	sftpConnectionPromise()
 * 		return a sFTP connection promise
 */
-async function sftp_connection_promise(from_name='sftp_connection_promise') {
+async function sftpConnectionPromise(fromName='sftpConnectionPromise') {
 	return new Promise(async (resolve, reject) => {
 		let connections;
 		try {
-			connections = await ssh_connection_promise(`${from_name}::sftp_connection_promise`);
-			connections.ssh_connection.sftp(async (err, sftp_connection) => {
-				if(err) return reject(`sftp_connection_promise::${err}`);
-				connections.sftp_connection = await override_connection(sftp_connection, true, from_name);
+			connections = await sshConnectionPromise(`${fromName}::sftpConnectionPromise`);
+			connections.sshConnection.sftp(async (err, sftpConnection) => {
+				if(err) return reject(`sftpConnectionPromise::${err}`);
+				connections.sftpConnection = await overrideConnection(sftpConnection, true, fromName);
 				return resolve(connections);
 			});
 		}catch(err){
-			close_connections(connections);
-			return reject(`sftp_connection_promise::${err}`);
+			closeConnections(connections);
+			return reject(`sftpConnectionPromise::${err}`);
 		}
 	});
 }
@@ -109,7 +108,7 @@ async function sftp_connection_promise(from_name='sftp_connection_promise') {
 * to global connections array to keep track of open connections
 * overrides the end function to update the open connections array
 */
-async function override_connection(connection, is_sftp=false, from_name='override_connection'){
+async function overrideConnection(connection, isSftp=false, fromName='overrideConnection'){
 	return new Promise(async (resolve, reject) => {
 		// create symbol and save on connections array
 		const symbol = Symbol();
@@ -119,21 +118,21 @@ async function override_connection(connection, is_sftp=false, from_name='overrid
 		// make sure we don't have more than 5 connections
 		if(debug && connections.length > 5) {
 			console.log('Too Many Connections!');
-			await kill_all_connections();
+			await killAllConnections();
 		}
 
 		// save internal properties and log what we are doing
-		connection.is_sftp = is_sftp;
-		connection.from_name = from_name;
-		if(debug) console.log(`open connection for ${is_sftp ? 'SFTP' : 'SSH'} from ${from_name}`);
+		connection.isSftp = isSftp;
+		connection.fromName = fromName;
+		if(debug) console.log(`open connection for ${isSftp ? 'SFTP' : 'SSH'} from ${fromName}`);
 
 		// override end function
-		const end_connection = connection.end;
+		const endConnection = connection.end;
 		connection.end = async function(){
-			if(debug) console.log(`close connection for ${connection.is_sftp ? 'SFTP' : 'SSH'} from ${connection.from_name}`);
+			if(debug) console.log(`close connection for ${connection.isSftp ? 'SFTP' : 'SSH'} from ${connection.fromName}`);
 
 			// call end to connection 
-			end_connection.apply(this);
+			endConnection.apply(this);
 			// filter out connection from array
 			connections = connections.filter(connects => connection.symbol !== connects.symbol);
 		}
@@ -146,31 +145,27 @@ async function override_connection(connection, is_sftp=false, from_name='overrid
 /**
  * ends any passed in connections
  */
-async function close_connections(connection){
-	if(connection && connection.ssh_connection) connection.ssh_connection.end();
-	if(connection && connection.sftp_connection) connection.sftp_connection.end();
+async function closeConnections(connection){
+	if(connection && connection.sshConnection) connection.sshConnection.end();
+	if(connection && connection.sftpConnection) connection.sftpConnection.end();
 	if(connection && connection.end) connection.end();
 } 
 
 
-async function kill_all_connections(){
+async function killAllConnections(){
 	// for each connection still open close it
-	await connections.forEach(conn_object =>{
+	await connections.forEach(connObject =>{
 		console.log('killing all connections!');
-		conn_object.connection.end();
+		connObject.connection.end();
 	});
 
 	// now we can exit
 	process.exit();
 }
 
-module.exports = {
-	ssh_connection_promise, 
-	sftp_connection_promise, 
-	connections,
-	close_connections,
-	check_ssh_connection,
-	check_sftp_connection,
-	check_both_connections,
-	kill_all_connections
-};
+ module.exports = {
+ 	sshConnectionPromise, checkSftpConnection,
+	checkSshConnection, checkBothConnections,
+	sftpConnectionPromise, overrideConnection,
+	closeConnections, killAllConnections
+ };

@@ -1,14 +1,14 @@
 const Promise = require("bluebird");
 const ProgressBar = require('progress');
 
-let bar_object;
+let barObject;
 
 /**
  * creates a gauge animation
  */
-function create_progress(number_of_files){
-	bar_object = new ProgressBar(':bar :percent :token1', { 
-		total: number_of_files,
+function createProgress(numberOfFiles){
+	barObject = new ProgressBar(':bar :percent :token1', { 
+		total: numberOfFiles,
 		clear: true,
 		complete: '#',
 		width: 20
@@ -17,11 +17,11 @@ function create_progress(number_of_files){
 
 /**
  * updates pulse animation
- * @param {object} object_data
+ * @param {string} fileName
  */
-function update_progress(file_name){
-	if(!bar_object) Promise.reject(new Error('update_progress::canot update progress bar without creating it first'))
-	bar_object.tick({token1: file_name});
+function updateProgress(fileName){
+	if(!barObject) Promise.reject(new Error('updateProgress::cannot update progress bar without creating it first'));
+	barObject.tick({token1: fileName});
 }
 
-module.exports = {create_progress, update_progress};
+module.exports = {createProgress, updateProgress};
