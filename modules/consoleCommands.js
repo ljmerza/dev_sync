@@ -20,7 +20,8 @@ process.stdin.on('keypress', async function (ch, key) {
 
 	// kill process if send SIGTERM
 	if (key && key.ctrl && key.name == 'c') {
-		return await killAllConnections();
+		await killAllConnections();
+		return process.exit();
 	}
 
 	// if spacebar then add else trim then add to key presses
@@ -40,16 +41,32 @@ process.stdin.on('keypress', async function (ch, key) {
 		// reset all key presses
 		const keyPresses = collectedKeys;
 		collectedKeys = '';
+		if(!keyPresses) return;
+
+		if ( keyPresses.match(/^killall$/i) ) {
+			await killAllConnections();
+			return;
+
 
 		// repos
-		if ( config.localPaths[keyPresses] ) {
+		} else if ( config.localPaths[keyPresses] ) {
 			localPath = `../${config.localPaths[keyPresses]}`;
 			remotePath = `${config.remoteBase}/${config.remotePaths[keyPresses]}`;
 			repoName = keyPresses;
 
+		// udember and udapi
+		} else if ( keyPresses.match(/^udember$/i) ) {
+			localPath = `../${config.localPaths.ud_ember}`;
+			remotePath = `${config.remoteBase}/${config.remotePaths.ud_ember}`;
+			repoName = 'ud_ember';
+		} else if ( keyPresses.match(/^udapi$/i) ) {
+			localPath = `../${config.localPaths.ud_api}`;
+			remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
+			repoName = 'ud_api';
+
 		// API repos
 		} else if ( keyPresses.match(/^teamdb(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.teamdb_api}`;
+			localPath = `../${config.localPaths.teamdbapi}`;
 			remotePath = `${config.remoteBase}/${config.remotePaths.teamdbapi}`;
 			repoName = 'teamdbapi';
 

@@ -2,7 +2,40 @@ const config = require('./../config');
 const { join, dirname } = require('path');
 
 // what is the folder depth of the base path to all watched files?
-const basePathDepth = join(__dirname, '../..').split('\\').length-1;
+const basePath = join(__dirname, '../..');
+const basePathDepth = basePath.split('\\').length-1;
+
+
+/**
+ * formats local and remote file paths for sFTP
+ * @param {object} changedFile
+ */
+function formatPaths(changedFile) {
+
+	 // how many folders to strip from file path from beginning
+	let sliceNumber = 1;
+
+	// these repos require the object path to be stripped to concat with the base path
+	if(['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
+		sliceNumber = 2;
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(changedFile.repo) )
+		sliceNumber = 3;
+	else if(['ud'].includes(changedFile.repo))
+		sliceNumber = 4;
+	else if(['wam_cron'].includes(changedFile.repo))
+		sliceNumber = 5;
+
+	// who knows...
+	const localBasePath = dirname(changedFile.localPath);
+	const windowsBasePath = basePath.replace(/\\/g, '/');
+	const localFilePathRaw = changedFile.localPath.replace(/\\/g, '/').replace(windowsBasePath, '');
+	const localFilePath = localFilePathRaw[0] === '/' ? localFilePathRaw.substring(1) : localFilePathRaw;
+	const absoluteLocalPath = changedFile.localPath;
+	const absoluteRemotePath = formatRemotePath({localPath:changedFile.localPath, sliceNumber, repo:changedFile.repo});
+	const remoteBasePath = ['addDir', 'unlinkDir'].includes(changedFile.action) ? absoluteRemotePath : dirname(absoluteRemotePath);
+
+	return {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath};
+}
 
 /**
  * formats a local file path for remote path
@@ -31,11 +64,11 @@ function formatRemotePath({localPath, sliceNumber, repo}) {
 		// if modules repo
 		return `${config.remoteBase}/includes/${remotePath}`;
 
-	} else if (repo === 'ud_ember') {
+	} else if (['ud_ember', 'udember'].includes(repo)) {
 		// if modules repo
-		return `${config.remoteBase}/www/UD_ember/${remotePath}`;
+		return `${config.remoteBase}/www/UD_ember/UD/${remotePath}`;
 
-	} else if (repo === 'teamdbapi') {
+	} else if (['teamdbapi'].includes(repo)) {
 		// if modules repo
 		return `${config.remoteBase}/www/teamdbapi/${remotePath}`;
 
@@ -43,29 +76,6 @@ function formatRemotePath({localPath, sliceNumber, repo}) {
 		// else any other repo
 		return `${config.remoteBase}/www/${remotePath}`;
 	}	
-}
-
-/**
- * formats local and remote file paths for sFTP
- * @param {object} changedFile
- */
-function formatPaths(changedFile) {
-
-	 // how many folders to strip from file path from beginning
-	let sliceNumber = 1;
-
-	// these repos require the object path to be stripped to concat with the base path
-	if(['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
-		sliceNumber = 2;
-	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(changedFile.repo) )
-		sliceNumber = 3;
-	else if(['ud'].includes(changedFile.repo))
-		sliceNumber = 4;
-	else if(['wam_cron'].includes(changedFile.repo))
-		sliceNumber = 5;
-
-	const remotePath = formatRemotePath({localPath:changedFile.localPath, sliceNumber, repo:changedFile.repo});
-	return [changedFile.localPath, remotePath];
 }
 
 

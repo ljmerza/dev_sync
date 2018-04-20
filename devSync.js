@@ -1,4 +1,3 @@
-const watch = require('watch');
 const path = require('path');
 const fs = require('fs');
 const Promise = require("bluebird");
@@ -17,7 +16,7 @@ let changedFiles = [];
 // create a default timeout to clear
 let currentTimer = setTimeout(()=>{},0);
 
-// watchRepos();
+watchRepos();
 logs.syncLogsInterval();
 
 
@@ -33,7 +32,7 @@ function watchRepos() {
 	.forEach( element => {
 
 		chokidar.watch(path.join(__dirname, element.dir), {
-			ignored: /\.git|node_modules|bower_components/,
+			ignored: /\.git|node_modules|bower_components|\/tmp\//,
 			persistent: true,
 			ignoreInitial: true,
 		})
@@ -76,10 +75,9 @@ async function sftpUpload() {
 		// for each file, format paths
 		const modifiedUploadFiles = uploadFiles.map( file => {
 			// create local/remote paths and get base path of file/folder
-			const [localPath, remotePath] = formatPaths(file);
-			const basePath = ['addDir', 'unlinkDir'].includes(file.action) ? remotePath : path.dirname(remotePath);
+			const {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath} = formatPaths(file);
 			// return new structure
-			return {localPath, remotePath, basePath, repo:file.repo, action:file.action};
+			return {localFilePath, absoluteRemotePath, remoteBasePath, repo:file.repo, action:file.action, localBasePath, absoluteLocalPath};
 		});
 		
 		try {

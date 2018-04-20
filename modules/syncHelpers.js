@@ -53,7 +53,6 @@ async function processSyncedOjects(allFilesData){
 		// if not from a repo sync then show all files synced
 		if(allFilesData.length > 0 && !allFilesData[0].syncRepo){
 			allFilesData.forEach(file => {
-		console.log('file: ', file);
 				console.log(    `${file.action} -> ${stripRemotePathForDisplay(file.remoteBasePath)}`);
 			})
 		}
@@ -81,17 +80,31 @@ async function deleteRemote(remotePath){
  * @param {ssh connection} connection
  */
 async function syncObject({file, connections, fromName}) {
-	switch(file.action){
-		case 'change':
-		case 'sync':
-			return await syncLocalToRemote({file, connections, fromName: `${fromName}::syncObject`});
-		case 'unlink':
-			return await deleteRemoteFile({remotePath:file.remotePath, connections, fromName});
-		case 'addDir':
-			return await makeRemoteDirectory(file.basePath, connections, fromName);
-		case 'unlinkDir':
-			return await deleteRemoteDirectory(file.basePath, connections, fromName);
-	}
+	return new Promise(async (resolve, reject) => {
+		try {
+			let response = '';
+
+			switch(file.action){
+				case 'change':
+				case 'sync':
+					response = await syncLocalToRemote({file, connections, fromName: `${fromName}::syncObject`});
+					break;
+				case 'unlink':
+					response = await deleteRemoteFile({remotePath:file.absoluteRemotePath, connections, fromName});
+					break;
+				case 'addDir':
+					response = await makeRemoteDirectory(file.remoteBasePath, connections, fromName);
+					break;
+				case 'unlinkDir':
+					response = await deleteRemoteDirectory(file.remoteBasePath, connections, fromName);
+					break;
+				return resolve(response);
+			}
+		} catch(error){
+			return reject(`syncObject::${error}`);
+		}
+	});
+	
 }
 
 /**
@@ -450,19 +463,26 @@ async function syncChunks(files, numberOfChunks, syncFunction, fromName, showPro
 
 			const fileChunks = chunkFiles({files, numberOfChunks});
 			fileChunks.forEach(async chunkOfFiles => {
-				let connections = await sftpConnectionPromise('syncChunks');
 
-				await asyncForEach(chunkOfFiles , async file => {
-					let message = await syncFunction({file, connections, fromName});
-					filesUploaded++;
-					if(showProgress) updateProgress(file.localFilePath || file.localBasePath);
-					syncResults.push(message);
-				});
+				try {
+					let connections = await sftpConnectionPromise('syncChunks');
+
+					await asyncForEach(chunkOfFiles , async file => {
+						let message = await syncFunction({file, connections, fromName});
+						filesUploaded++;
+						if(showProgress) updateProgress(file.localFilePath || file.localBasePath);
+						syncResults.push(message);
+					});
+					
+					closeConnections(connections);
+					if(++processedChunks === fileChunks.length){
+						return resolve(syncResults);
+					};
+				} catch(err) {
+					closeConnections(connections);
+					return reject(`fileChunks syncChunks::${err}`);
+				}
 				
-				closeConnections(connections);
-				if(++processedChunks === fileChunks.length){
-					return resolve(syncResults);
-				};
 			});
 
 		} catch(err) {

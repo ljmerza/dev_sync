@@ -8,14 +8,12 @@
     "chokidar": "^1.7.0",
     "cli-clear": "^1.0.4",
     "keypress": "^0.2.1",
-    "memwatch-next": "^0.3.0",
     "progress": "^2.0.0",
     "recursive-readdir": "^2.2.1",
     "ssh2": "^0.5.4",
-    "stream-equal": "^1.1.0",
-    "watch": "^1.0.2"
+    "stream-equal": "^1.1.0"
   },
   "scripts": {
-    "start": "node --experimental-modules dev_sync.js"
+    "start": "node --experimental-modules devSync.js"
   }
 }

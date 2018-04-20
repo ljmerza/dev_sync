@@ -1,6 +1,9 @@
 const SSH2 = require('ssh2');
 const fs = require('fs');
+
 const config = require('./../config');
+const {asyncForEach} = require('./tools');
+
 let ppkFile;
 const debug = false;
 
@@ -151,16 +154,15 @@ async function closeConnections(connection){
 	if(connection && connection.end) connection.end();
 } 
 
-
+/**
+ * kills all open connections (that are tracked)
+ */
 async function killAllConnections(){
-	// for each connection still open close it
-	await connections.forEach(connObject =>{
-		console.log('killing all connections!');
-		connObject.connection.end();
+	console.log('killing all connections!');
+	await asyncForEach(connections, async connObject =>{
+		await connObject.connection.end();
+		console.log('killed connection!');
 	});
-
-	// now we can exit
-	process.exit();
 }
 
  module.exports = {
