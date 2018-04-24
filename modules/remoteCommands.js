@@ -3,13 +3,6 @@ const Promise = require("bluebird");
 const {checkSshConnection,closeConnections} = require("./connections");
 const {formatServerStdOut} = require('./formatting');
 
-
-// test connection to dev server
-(async () => {
-	const server = await executeRemoteCommand('hostname', null, 'hostname', true);
-	console.log(`Connected with ${server}`);
-})();
-
 /**
  *  makes directory folder for a given path
  * @param {string} basePath
@@ -20,10 +13,10 @@ async function makeRemoteDirectory(basePath, connections, fromName) {
 		try {
 			connections = await checkSshConnection(connections, `${fromName}::makeRemoteDirectory`);
 			await executeRemoteCommand(`mkdir -p ${basePath}`, connections, `${fromName}::makeRemoteDirectory`);
+			return resolve(basePath);
 		} catch(err){
 			return reject(`makeRemoteDirectory::${err}`);
 		}
-		return resolve();
 	});
 }
 
@@ -36,10 +29,10 @@ async function deleteRemoteDirectory(basePath, connections, fromName){
 	return new Promise(async (resolve, reject) => {
 		try {
 			await executeRemoteCommand(`rm -rd ${basePath}`, connections, `${fromName}::deleteRemoteDirectory`);
+			return resolve(basePath);
 		} catch(err){
 			return reject(`deleteRemoteDirectory::${err}`);
 		}
-		return resolve();
 	});
 }
 
@@ -51,11 +44,11 @@ async function deleteRemoteDirectory(basePath, connections, fromName){
 async function deleteRemoteFile({remotePath, connections, fromName}){
 	return new Promise(async (resolve, reject) => {
 		try {
-			await executeRemoteCommand(`rm ${remotePath}`, connections, `${fromName}::deleteRemoteFile`);
+			await executeRemoteCommand(`rm -f ${remotePath}`, connections, `${fromName}::deleteRemoteFile`);
+			return resolve(remotePath);
 		} catch(err){
 			return reject(`deleteRemoteFile::${err}`);
 		}
-		return resolve();
 	});
 }
 
@@ -187,12 +180,12 @@ async function getRemoteFileTree({path, fromName='getRemoteFileTree'}) {
 		try {
 			const result = await executeRemoteCommand(`find ${path}/. -print`, null, `${fromName}::getRemoteFileTree`, true);
 		
-			// split into an array of file paths, remove folders, 
+			// split into an array of file paths, remove folders, ignore dist based files
 			// remote relative path marker, and filter out ignored files
 			const files = result.split(path)
 				.filter(file => /\.[a-zA-Z]{2,4}$/g.test(file))
 				.map(file => `${path}${file.substring(2)}`)
-				.filter(file => !/\/.git\/|\/bower_components\/|\/node_modules\/|\/tmp\//.test(file));
+				.filter(file => !/\/.git\/|\/bower_components\/|\/node_modules\/|\/tmp\/|\/UD\/dist\//i.test(file))
 
 			return resolve(files);
 		} catch(err){

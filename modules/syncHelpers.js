@@ -33,7 +33,6 @@ async function syncObjects(allFilesData) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			const result = await syncChunks(allFilesData, 8, syncObject, 'syncObjects', true);
-			await processSyncedOjects(allFilesData);
 			return resolve(result);
 		} catch(error){
 			return reject(`syncObjects::${error}`); 
@@ -45,16 +44,14 @@ async function syncObjects(allFilesData) {
  * logs files processed
  * @param {object} allFilesData
  */
-async function processSyncedOjects(allFilesData){
+async function processSyncedObjects(result){
 	// then log files synced
-	if(allFilesData.length > 0) {
-		const multiple = allFilesData.length == 1 ? '' : 's';
-		console.log(`${allFilesData.length} object${multiple} processed`);
+	if(result.length > 0) {
+		const multiple = result.length == 1 ? '' : 's';
+		console.log(`${result.length} object${multiple} processed:`);
 		// if not from a repo sync then show all files synced
-		if(allFilesData.length > 0 && !allFilesData[0].syncRepo){
-			allFilesData.forEach(file => {
-				console.log(    `${file.action} -> ${stripRemotePathForDisplay(file.remoteBasePath)}`);
-			})
+		if(result.length > 0 && !result[0].syncRepo){
+			result.forEach(file => console.log(`	${file.action} -> ${file.file}`));
 		}
 	}
 }
@@ -87,6 +84,7 @@ async function syncObject({file, connections, fromName}) {
 			switch(file.action){
 				case 'change':
 				case 'sync':
+				case 'add':
 					response = await syncLocalToRemote({file, connections, fromName: `${fromName}::syncObject`});
 					break;
 				case 'unlink':
@@ -98,8 +96,9 @@ async function syncObject({file, connections, fromName}) {
 				case 'unlinkDir':
 					response = await deleteRemoteDirectory(file.remoteBasePath, connections, fromName);
 					break;
-				return resolve(response);
 			}
+
+			return resolve({file:response, action: file.action});
 		} catch(error){
 			return reject(`syncObject::${error}`);
 		}
@@ -179,21 +178,22 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			const localFiles = await getLocalFileTree({localPath});
 			const filteredLocalFiles = filterNodeAndGitFiles({files:localFiles});
 
+			// format local files to get local and remote absolute paths
+			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});
+
+			// find any remote files that need deleting
 			console.log('Getting remote file list...');
 			const remoteFiles = await getRemoteFileTree({path:remoteBasePath});
-
-			// format local files then get all remote files that don't exist locally
-			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});
 			const absoluteRemoteFiles = formattedFiles.map(file => file.absoluteRemotePath);
-			const remoteFilesToDelete = remoteFiles.filter(x => !absoluteRemoteFiles.includes(x));
+			const remoteFilesToDelete = remoteFiles.filter(file => !absoluteRemoteFiles.includes(file));
 
+			// if any files to delete then delete them now
 			if(remoteFilesToDelete.length > 0){
 				const plural = remoteFilesToDelete.length === 1 ? '' : 's';
 				console.log(`Deleting ${remoteFilesToDelete.length} extra remote file${plural}...`);
 				await bulkDeleteRemoteFiles({remoteFilesToDelete});
 			}
 			
-
 			// filter out any files that already are synced
 			console.log('Comparing files...');
 			const filesToSync = await findFilesToSync({formattedFiles});
@@ -201,7 +201,9 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			// checking if any files need to be synced
 			if(filesToSync.length > 0){
 				const plural = filesToSync.length === 1 ? '' : 's';
-				console.log(`Syncing ${filesToSync.length} file${plural}...`);
+				console.log(`Syncing ${filesToSync.length} file${plural}:`);
+				filesToSync.forEach(file => console.log(`	${file.localFilePath}`));
+
 				const filedSynced = await syncObjects(filesToSync);
 				return resolve(filedSynced);
 			} else {
@@ -224,11 +226,12 @@ async function findFilesToSync({formattedFiles}){
 	let processedChunks = 0;
 
 	return new Promise((resolve, reject) => {
-		try {
-			const fileChunks = chunkFiles({files:formattedFiles, numberOfChunks: 8});
 
-			fileChunks.forEach(async chunkOfFiles => {
-				let connections = await sftpConnectionPromise('syncChunks');
+		const fileChunks = chunkFiles({files:formattedFiles, numberOfChunks: 8});
+		fileChunks.forEach(async chunkOfFiles => {
+			let connections;
+			try {
+				connections = await sftpConnectionPromise('syncChunks');
 
 				await asyncForEach(chunkOfFiles , async file => {
 					const isEqual = await areFileSteamsEqual({
@@ -244,11 +247,13 @@ async function findFilesToSync({formattedFiles}){
 				if(++processedChunks === fileChunks.length){
 					return resolve(filesToSync);
 				};
-			});
 
-		} catch(err){
-			return reject(`findFilesToSync::${err}`);
-		}
+			} catch(err){
+				closeConnections(connections);
+				return reject(`findFilesToSync::${err}`);
+			}
+		});
+		
 	});
 }
 
@@ -399,7 +404,7 @@ async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePa
 			connections.sftpConnection.fastPut(absoluteLocalPath, absoluteRemotePath, err => {
 				if(err) return reject(`${fromName}::setRemoteFile::fastPut::${err}`);
 				if(closeConnection) closeConnections(connections);
-				return resolve(`synced ${localFilePath} to remote`);
+				return resolve(localFilePath);
 			});
 
 		} catch(err){
@@ -492,7 +497,7 @@ async function syncChunks(files, numberOfChunks, syncFunction, fromName, showPro
 }
 
 module.exports = {
-	syncObjects, processSyncedOjects, deleteRemote, 
+	syncObjects, processSyncedObjects, deleteRemote, 
 	syncObject, syncLocalToRemote, needsSync, transferRepo, 
 	findFilesToSync, chunkOperation, bulkDeleteRemoteFiles2, 
 	bulkDeleteRemoteFiles, getLocalFileTree, areFileSteamsEqual, 

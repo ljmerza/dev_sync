@@ -4,7 +4,9 @@ const Promise = require("bluebird");
 const chokidar = require('chokidar');
 
 const {formatPaths} = require("./modules/formatting");
-const {syncObjects} = require("./modules/syncHelpers");
+const {syncObjects, processSyncedObjects} = require("./modules/syncHelpers");
+const {executeRemoteCommand} = require("./modules/remoteCommands");
+
 const logs = require("./modules/logs");
 const config = require('./config');
 
@@ -16,8 +18,17 @@ let changedFiles = [];
 // create a default timeout to clear
 let currentTimer = setTimeout(()=>{},0);
 
-watchRepos();
-logs.syncLogsInterval();
+
+// test connection to dev server then start watching
+(async () => {
+	const server = await executeRemoteCommand('hostname', null, 'hostname', true);
+	console.log(`Connected with ${server}`);
+
+	await watchRepos();
+	await logs.syncLogsInterval();
+})();
+
+
 
 
 
@@ -25,7 +36,7 @@ logs.syncLogsInterval();
  * format dirs to relative path of this file then create watcher
  */
 function watchRepos() {
-	console.log('watching the following directories:');
+	console.log('watching the following repositories:');
 
 	Object.keys(config.localPaths)
 	.map( repo => { return {dir: `../${config.localPaths[repo]}/`, repo} })
@@ -42,7 +53,7 @@ function watchRepos() {
 		.on('addDir', path => addToSync(path, 'addDir', element.repo))
 		.on('unlinkDir', path => addToSync(path, 'unlinkDir', element.repo))
 		.on('error', error => console.log('watcher ERROR: ', error))
-		.on('ready', () => console.log('	', element.dir));
+		.on('ready', () => console.log('	', element.repo));
 
 		function addToSync(localPath, action, repo){
 			changedFiles.push({localPath, repo, action});
@@ -81,7 +92,8 @@ async function sftpUpload() {
 		});
 		
 		try {
-			await syncObjects(modifiedUploadFiles);
+			const result = await syncObjects(modifiedUploadFiles);
+			await processSyncedObjects(result);
 		} catch(err){
 			return reject(`sftpUpload::${err}`);
 		}
