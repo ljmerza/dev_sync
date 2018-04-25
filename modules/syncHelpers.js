@@ -174,7 +174,7 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 		try {
 
 			// get local and remote files list
-			console.log('Getting local file list...');
+			console.log(`Getting ${repo} local file list...`);
 			const localFiles = await getLocalFileTree({localPath});
 			const filteredLocalFiles = filterNodeAndGitFiles({files:localFiles});
 
@@ -182,7 +182,7 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});
 
 			// find any remote files that need deleting
-			console.log('Getting remote file list...');
+			console.log(`Getting ${repo} remote file list...`);
 			const remoteFiles = await getRemoteFileTree({path:remoteBasePath});
 			const absoluteRemoteFiles = formattedFiles.map(file => file.absoluteRemotePath);
 			const remoteFilesToDelete = remoteFiles.filter(file => !absoluteRemoteFiles.includes(file));
@@ -190,24 +190,24 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			// if any files to delete then delete them now
 			if(remoteFilesToDelete.length > 0){
 				const plural = remoteFilesToDelete.length === 1 ? '' : 's';
-				console.log(`Deleting ${remoteFilesToDelete.length} extra remote file${plural}...`);
+				console.log(`Deleting ${remoteFilesToDelete.length} extra remote file${plural} from ${repo}...`);
 				await bulkDeleteRemoteFiles({remoteFilesToDelete});
 			}
 			
 			// filter out any files that already are synced
-			console.log('Comparing files...');
+			console.log(`Comparing ${repo} files...`);
 			const filesToSync = await findFilesToSync({formattedFiles});
 
 			// checking if any files need to be synced
 			if(filesToSync.length > 0){
 				const plural = filesToSync.length === 1 ? '' : 's';
-				console.log(`Syncing ${filesToSync.length} file${plural}:`);
+				console.log(`Syncing ${filesToSync.length} file${plural} to ${repo}:`);
 				filesToSync.forEach(file => console.log(`	${file.localFilePath}`));
 
 				const filedSynced = await syncObjects(filesToSync);
 				return resolve(filedSynced);
 			} else {
-				console.log('All files already synced!');
+				console.log(`All ${repo} files already synced!`);
 				return resolve();
 			}
 			
