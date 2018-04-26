@@ -116,11 +116,12 @@ async function executeRemoteCommand(command, connections, fromName='executeRemot
 
 				}).stderr.on('data', error => {
 					// on error data received process it - dont show certain errors
-					data = formatServerStdOut(error).trim();
-					if(!data.match(/^( chmod| bash| : No such| chgrp| cannot|Too late|$)/)){
+					error = formatServerStdOut(error).trim();
+					if(!error.match(/^( chmod| bash| : No such| chgrp| cannot|Too late|$)/)){
 						return reject(`stderr executeRemoteCommand::${error}`);
 					}
-					return resolve(returnValue);
+					if(!returnResult) console.log(error);
+					else returnValue += error;
 
 	  			}).on('close', () => { 
 					if(closeConnection) closeConnections(connections);
