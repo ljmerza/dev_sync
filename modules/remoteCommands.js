@@ -118,7 +118,7 @@ async function executeRemoteCommand(command, connections, fromName='executeRemot
 					// on error data received process it - dont show certain errors
 					error = formatServerStdOut(error).trim();
 					if(!error.match(/^( chmod| bash| : No such| chgrp| cannot|Too late|$)/)){
-						return reject(`stderr executeRemoteCommand::${error}`);
+						// return reject(`stderr executeRemoteCommand::${error}`);
 					}
 					if(!returnResult) console.log(error);
 					else returnValue += error;
