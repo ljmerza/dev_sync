@@ -24,7 +24,9 @@ let currentTimer = setTimeout(()=>{},0);
 	const server = await executeRemoteCommand('hostname', null, 'hostname', true);
 	console.log(`Connected with ${server}`);
 
+
 	await watchRepos();
+	await logs.syncLogFiles();
 	await logs.syncLogsInterval();
 })();
 

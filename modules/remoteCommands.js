@@ -179,16 +179,14 @@ async function restartApache({connections, fromName='restartApache'}) {
 async function getRemoteFileTree({path, fromName='getRemoteFileTree'}) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const result = await executeRemoteCommand(`find ${path}/. -print`, null, `${fromName}::getRemoteFileTree`, true);
+			const command = `find ${path}/ -type d \\( -path ${path}/node_modules -o -path ${path}/bower_components -o -path ${path}/tmp \\) -prune -o -print`;
+			const result = await executeRemoteCommand(command, null, `${fromName}::getRemoteFileTree`, true);
 		
-			// split into an array of file paths, remove folders, ignore dist based files
-			// remote relative path marker, and filter out ignored files
-			const files = result.split(path)
+			const absoluteFiles = result.split(path)
 				.filter(file => /\.[a-zA-Z]{2,4}$/g.test(file))
-				.map(file => `${path}${file.substring(2)}`)
-				.filter(file => !/\/.git\/|\/bower_components\/|\/node_modules\/|\/tmp\/|\/UD\/dist\//i.test(file))
+				.map(file => `${path}${file}`);
 
-			return resolve(files);
+			return resolve(absoluteFiles);
 		} catch(err){
 			return reject(`getRemoteFileTree::${err}`)
 		}

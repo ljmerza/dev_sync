@@ -174,7 +174,7 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 		try {
 
 			// get local and remote files list
-			console.log(`Getting ${repo} local file list...`);
+			console.log(`Getting ${repo} local file list at ${localPath}`);
 			const localFiles = await getLocalFileTree({localPath});
 			const filteredLocalFiles = filterNodeAndGitFiles({files:localFiles});
 
@@ -182,7 +182,7 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});
 
 			// find any remote files that need deleting
-			console.log(`Getting ${repo} remote file list...`);
+			console.log(`Getting ${repo} remote file list at ${remoteBasePath}`);
 			const remoteFiles = await getRemoteFileTree({path:remoteBasePath});
 			const absoluteRemoteFiles = formattedFiles.map(file => file.absoluteRemotePath);
 			const remoteFilesToDelete = remoteFiles.filter(file => !absoluteRemoteFiles.includes(file));

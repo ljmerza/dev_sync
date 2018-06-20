@@ -6,7 +6,7 @@ const config = require('./../config');
 const {executeRemoteCommand} = require('./remoteCommands');
 const {syncChunks, syncRemoteToLocal} = require('./syncHelpers');
 const {formatLogFiles} = require('./formatting');
-
+const {asyncForEach} = require('./tools');
 
 /**
  * syncs log files from server to host
@@ -18,6 +18,24 @@ async function syncLogs(logFiles) {
 			return resolve(result);
 		} catch(err){
 			return reject(`syncLogs::${err}`);
+		}
+	});
+}
+
+/**
+ * creates remote log paths if they dont exist
+ */
+async function syncLogFiles(){
+	return new Promise(async (resolve, reject) => {
+		try {
+			await asyncForEach(config.logFiles, async file => {
+				const command = `mkdir -p ${config.remoteBase}/${file[0]}`
+				await executeRemoteCommand(command, null, `syncLogFiles`);
+			});
+			return resolve();
+
+		} catch(err){
+			return reject(`syncLogFiles::${err}`);
 		}
 	});
 }
@@ -71,4 +89,4 @@ async function resetLogs(fromName='resetLogs') {
 	});	
 }
 
-module.exports = {syncLogs, syncLogsInterval, resetLogs};
+module.exports = {syncLogs, syncLogsInterval, resetLogs, syncLogFiles};
