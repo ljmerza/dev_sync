@@ -18,7 +18,7 @@ function formatPaths(changedFile) {
 	// these repos require the object path to be stripped to concat with the base path
 	if(['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
 		sliceNumber = 2;
-	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron'].includes(changedFile.repo) )
+	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron', 'template_api', 'template_ember'].includes(changedFile.repo) )
 		sliceNumber = 3;
 	else if(['ud'].includes(changedFile.repo))
 		sliceNumber = 4;
@@ -34,6 +34,8 @@ function formatPaths(changedFile) {
 	const absoluteRemotePath = formatRemotePath({localPath:changedFile.localPath, sliceNumber, repo:changedFile.repo});
 	const remoteBasePath = ['addDir', 'unlinkDir'].includes(changedFile.action) ? absoluteRemotePath : dirname(absoluteRemotePath);
 
+	console.log({localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath});
+	
 	return {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath};
 }
 
@@ -61,16 +63,19 @@ function formatRemotePath({localPath, sliceNumber, repo}) {
 		return `${config.remoteBase}/crons/${repo}/${remotePath}`;
 
 	} else if (['modules', 'external_modules', 'dev_scripts'].includes(repo)) {
-		// if modules repo
 		return `${config.remoteBase}/includes/${remotePath}`;
 
 	} else if (['ud_ember', 'udember'].includes(repo)) {
-		// if modules repo
 		return `${config.remoteBase}/www/UD_ember/UD/${remotePath}`;
 
 	} else if (['teamdbapi'].includes(repo)) {
-		// if modules repo
 		return `${config.remoteBase}/www/teamdbapi/${remotePath}`;
+
+	} else if (['template_api'].includes(repo)) {
+		return `${config.remoteBase}/www/template_api/${remotePath}`;
+	
+	} else if (['template_ember'].includes(repo)) {
+		return `${config.remoteBase}/www/template_ember/${remotePath}`;
 
 	} else {
 		// else any other repo

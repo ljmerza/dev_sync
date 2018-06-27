@@ -103,6 +103,10 @@ process.stdin.on('keypress', async function (ch, key) {
 		} else if ( keyPresses.match(/^(thyp|thypno|thypnotoad)$/i) ) {
 			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.teamdbapi}`; 
 			repoName = 'teamdb'; 
+			
+		} else if ( keyPresses.match(/^(tthyp|tthypno|tthypnotoad)$/i) ) {
+			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.template_api}`; 
+			repoName = 'template_api'; 
 
 		} else if ( keyPresses.match(/^(ahyp|ahypno|ahypnotoad)$/i) ) {
 			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.aqe_api}`;
