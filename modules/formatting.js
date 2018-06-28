@@ -33,8 +33,6 @@ function formatPaths(changedFile) {
 	const absoluteLocalPath = changedFile.localPath;
 	const absoluteRemotePath = formatRemotePath({localPath:changedFile.localPath, sliceNumber, repo:changedFile.repo});
 	const remoteBasePath = ['addDir', 'unlinkDir'].includes(changedFile.action) ? absoluteRemotePath : dirname(absoluteRemotePath);
-
-	console.log({localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath});
 	
 	return {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath};
 }
