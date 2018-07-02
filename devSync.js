@@ -26,7 +26,6 @@ let currentTimer = setTimeout(()=>{},0);
 
 
 	await watchRepos();
-	await logs.syncLogFiles();
 	await logs.syncLogsInterval();
 })();
 

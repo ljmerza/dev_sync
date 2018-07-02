@@ -25,17 +25,17 @@ async function syncLogs(logFiles) {
 /**
  * creates remote log paths if they dont exist
  */
-async function syncLogFiles(){
+async function syncLogFolders(){
 	return new Promise(async (resolve, reject) => {
 		try {
 			await asyncForEach(config.logFiles, async file => {
 				const command = `mkdir -p ${config.remoteBase}/${file[0]}`
-				await executeRemoteCommand(command, null, `syncLogFiles`);
+				await executeRemoteCommand(command, null, `syncLogFolders`);
 			});
 			return resolve();
 
 		} catch(err){
-			return reject(`syncLogFiles::${err}`);
+			return reject(`syncLogFolders::${err}`);
 		}
 	});
 }
@@ -44,6 +44,8 @@ async function syncLogFiles(){
  * download log files periodically
  */
 async function syncLogsInterval() {
+	await syncLogFolders();
+
 	let checkSync = true; // only allow one sync operation at a time
 	const formattedLogFiles = formatLogFiles(config.logFiles);
 
@@ -89,4 +91,4 @@ async function resetLogs(fromName='resetLogs') {
 	});	
 }
 
-module.exports = {syncLogs, syncLogsInterval, resetLogs, syncLogFiles};
+module.exports = {syncLogs, syncLogsInterval, resetLogs};
