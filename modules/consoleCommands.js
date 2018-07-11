@@ -14,9 +14,14 @@ const {transferRepo} = require('./syncHelpers');
 keypress(process.stdin);
 
 let collectedKeys = '';
+process.stdin.on('keypress', logKeyPress);
 
-// listen for the "keypress" event
-process.stdin.on('keypress', async function (ch, key) {
+/**
+ * 
+ * @param {object} ch 
+ * @param {object} key
+ */
+async function logKeyPress(ch, key) {
 
 	// kill process if send SIGTERM
 	if (key && key.ctrl && key.name == 'c') {
@@ -159,39 +164,54 @@ process.stdin.on('keypress', async function (ch, key) {
 
 		}
 
-		let message = '';
-		try {
-			// sync repo
-			if(localPath) {
-				console.log(`syncing ${repoName}...`);
-				await transferRepo({localPath, remoteBasePath:remotePath, repo:repoName});
-
-			} else if(command) {
-				// custom commands, deleting folders, restarting repos
-				if(repoName.match('custom command')) console.log(repoName); 	
-				else if(repoName.match('modules')) console.log(`deleting ${repoName} folder...`);
-				else console.log(`restarting ${config.repoName}...`);
-				message = await executeRemoteCommand(command, null, 'consoleCommands');
-				if(repoName.match('modules')) console.log(`deleted ${repoName} folder`);
-
-			} else if (hypnotoad) {
-				message = await restartHypnotoad({path:hypnotoad, repoName, fromName:'consoleCommands'});
-
-			} else if ( keyPresses === 'logs' ) {
-				message = await resetLogs('consoleCommands');
-
-			} else {
-				console.log('Incorrect command type `help` to see options');
-			}
-
-			// finally log message from command execution
-			if(message) console.log(message);
-
-		} catch(err){
-			console.log(`consoleCommands::${err}`);
-		}
+		await runCommandGiven(localPath, repoName, remotePath, repoName, command, hypnotoad, keyPresses);
 	}
-});
+}
+
+/**
+ * 
+ * @param {string} localPath 
+ * @param {string} repoName
+ * @param {string} remotePath
+ * @param {string} repoName
+ * @param {string} command
+ * @param {string} hypnotoad
+ * @param {string} keyPresses
+ */
+async function runCommandGiven(localPath, repoName, remotePath, repoName, command, hypnotoad, keyPresses){
+	let message = '';
+
+	try {
+		// sync repo
+		if (localPath) {
+			console.log(`syncing ${repoName}...`);
+			await transferRepo({ localPath, remoteBasePath: remotePath, repo: repoName });
+
+		} else if (command) {
+			// custom commands, deleting folders, restarting repos
+			if (repoName.match('custom command')) console.log(repoName);
+			else if (repoName.match('modules')) console.log(`deleting ${repoName} folder...`);
+			else console.log(`restarting ${config.repoName}...`);
+			message = await executeRemoteCommand(command, null, 'consoleCommands');
+			if (repoName.match('modules')) console.log(`deleted ${repoName} folder`);
+
+		} else if (hypnotoad) {
+			message = await restartHypnotoad({ path: hypnotoad, repoName, fromName: 'consoleCommands' });
+
+		} else if (keyPresses === 'logs') {
+			message = await resetLogs('consoleCommands');
+
+		} else {
+			console.log('Incorrect command type `help` to see options');
+		}
+
+		// finally log message from command execution
+		if (message) console.log(message);
+
+	} catch (err) {
+		console.log(`consoleCommands::${err}`);
+	}
+}
 
 // resume processes after watching input
 process.stdin.setRawMode(true);

@@ -11,21 +11,8 @@ const basePathDepth = basePath.split('\\').length-1;
  * @param {object} changedFile
  */
 function formatPaths(changedFile) {
+	const sliceNumber = getSliceNumber(changedFile);
 
-	 // how many folders to strip from file path from beginning
-	let sliceNumber = 1;
-
-	// these repos require the object path to be stripped to concat with the base path
-	if(['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
-		sliceNumber = 2;
-	else if( ['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron', 'template_api', 'template_ember'].includes(changedFile.repo) )
-		sliceNumber = 3;
-	else if(['ud'].includes(changedFile.repo))
-		sliceNumber = 4;
-	else if(['wam_cron'].includes(changedFile.repo))
-		sliceNumber = 5;
-
-	// who knows...
 	const localBasePath = dirname(changedFile.localPath);
 	const windowsBasePath = basePath.replace(/\\/g, '/');
 	const localFilePathRaw = changedFile.localPath.replace(/\\/g, '/').replace(windowsBasePath, '');
@@ -38,20 +25,33 @@ function formatPaths(changedFile) {
 }
 
 /**
+ * how many folders to strip from file path from beginning
+ * @param {Object} changedFile 
+ */
+function getSliceNumber(changedFile){
+	let sliceNumber = 1;
+
+	// these repos require the object path to be stripped to concat with the base path
+	if (['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
+		sliceNumber = 2;
+	else if (['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron', 'template_api', 'template_ember'].includes(changedFile.repo))
+		sliceNumber = 3;
+	else if (['ud'].includes(changedFile.repo))
+		sliceNumber = 4;
+	else if (['wam_cron'].includes(changedFile.repo))
+		sliceNumber = 5;
+
+	return sliceNumber;
+}
+
+/**
  * formats a local file path for remote path
  * @param {string} localPath
  * @param {integer} sliceNumber
  * @param {string} repo
  */
 function formatRemotePath({localPath, sliceNumber, repo}) {
-
-	// change capitalization of UD if needed
-	if(localPath.match(/\\ud_api\\/)){
-		localPath = localPath.replace('ud_api', 'UD_api');
-	} else if(localPath.match(/\\ud\\/)){
-		localPath = localPath.replace('\\ud\\', '\\UD\\');
-	}
-	
+	localPath = changeUdCapitalization(localPath);
 
 	// get remote path from local path
 	const remotePath = localPath.split('\\').slice(sliceNumber+basePathDepth).join('/');
@@ -59,26 +59,32 @@ function formatRemotePath({localPath, sliceNumber, repo}) {
 	// return full remote path based on repo type
 	if(repo.match(/cron/)){
 		return `${config.remoteBase}/crons/${repo}/${remotePath}`;
-
 	} else if (['modules', 'external_modules', 'dev_scripts'].includes(repo)) {
 		return `${config.remoteBase}/includes/${remotePath}`;
-
 	} else if (['ud_ember', 'udember'].includes(repo)) {
 		return `${config.remoteBase}/www/UD_ember/UD/${remotePath}`;
-
 	} else if (['teamdbapi'].includes(repo)) {
 		return `${config.remoteBase}/www/teamdbapi/${remotePath}`;
-
 	} else if (['template_api'].includes(repo)) {
 		return `${config.remoteBase}/www/template_api/${remotePath}`;
-	
 	} else if (['template_ember'].includes(repo)) {
 		return `${config.remoteBase}/www/template_ember/${remotePath}`;
-
 	} else {
-		// else any other repo
 		return `${config.remoteBase}/www/${remotePath}`;
 	}	
+}
+
+/**
+ * 
+ * @param {string} localPath 
+ */
+function changeUdCapitalization(localPath){
+	// change capitalization of UD if needed
+	if (localPath.match(/\\ud_api\\/)) {
+		localPath = localPath.replace('ud_api', 'UD_api');
+	} else if (localPath.match(/\\ud\\/)) {
+		localPath = localPath.replace('\\ud\\', '\\UD\\');
+	}
 }
 
 
