@@ -85,6 +85,8 @@ function changeUdCapitalization(localPath){
 	} else if (localPath.match(/\\ud\\/)) {
 		localPath = localPath.replace('\\ud\\', '\\UD\\');
 	}
+
+	return localPath;
 }
 
 
