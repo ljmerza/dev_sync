@@ -34,7 +34,7 @@ function getSliceNumber(changedFile){
 	// these repos require the object path to be stripped to concat with the base path
 	if (['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
 		sliceNumber = 2;
-	else if (['aqe', 'wam', 'teamdb', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron', 'template_api', 'template_ember'].includes(changedFile.repo))
+	else if (['aqe', 'wam', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron', 'template_api', 'template_ember'].includes(changedFile.repo))
 		sliceNumber = 3;
 	else if (['ud'].includes(changedFile.repo))
 		sliceNumber = 4;

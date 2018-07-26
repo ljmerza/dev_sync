@@ -99,6 +99,11 @@ async function logKeyPress(ch, key) {
 			localPath = `../${config.localPaths.upm_api}`;
 			remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
 			repoName = 'upm_api';
+			
+		} else if ( keyPresses.match(/^modules$/i) ) {
+			localPath = `../${config.localPaths.modules}`;
+			remotePath = `${config.remoteBase}/${config.remotePaths.modules}`;
+			repoName = 'modules';
 
 		// hypnotoads
 		} else if ( keyPresses.match(/^(hyp|hypno|hypnotoad|h)$/i) ) {
