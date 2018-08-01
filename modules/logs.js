@@ -29,7 +29,7 @@ async function syncLogFolders(){
 	return new Promise(async (resolve, reject) => {
 		try {
 			await asyncForEach(config.logFiles, async file => {
-				const command = `mkdir -p ${config.remoteBase}/${file[0]}`
+				const command = `mkdir -p ${config.remoteBase}/${file[0]}`;
 				await executeRemoteCommand(command, null, `syncLogFolders`);
 			});
 			return resolve();
