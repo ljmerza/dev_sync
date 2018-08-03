@@ -99,7 +99,7 @@ async function sftpConnectionPromise(fromName='sftpConnectionPromise') {
 				connections.sftpConnection = await overrideConnection(sftpConnection, true, fromName);
 				return resolve(connections);
 			});
-		}catch(err){
+		} catch(err){
 			closeConnections(connections);
 			return reject(`sftpConnectionPromise::${err}`);
 		}
