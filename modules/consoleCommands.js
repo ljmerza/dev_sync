@@ -225,13 +225,13 @@ process.stdin.resume();
 // keep track of all key presses since last enter button pressed
 let keyPresses = '';
 
-
+const watchingPaths = Object.keys(config.localPaths)
+	.map(repo => `	${repo}: ../${config.localPaths[repo]}`)
+	.join(`\n`);
 
 const help = `
 sync repo to server by typing the repo name and pressing enter. Supported repos:
-		ud, ud_api, wam,aqe, tqi, modules, taskamster, teamdb, 
-		teamdapi, wamapi, aqeapi, upm, upmapi, templates, 
-		udember (build files only)
+${watchingPaths}
 
 restart hypnotoad with *hyp:
 		hyp - udapi, thyp - teamdb, 

@@ -104,6 +104,5 @@ async function sftpUpload() {
 /**
  * catch all errors here
  */
-process.on('uncaughtException', function(err) {
-  console.log('Caught exception: ' + err);
-});
+process.on('unhandledRejection', reason => {throw reason});
+process.on('uncaughtException', err => console.log('Caught exception: ' + err));
