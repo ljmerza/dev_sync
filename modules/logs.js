@@ -1,6 +1,8 @@
 const Promise = require("bluebird");
-const fs = require('fs');
 const streamEqual = require('stream-equal');
+const {existsSync} = require('fs');
+const {join} = require('path');
+const {exec} = require('child_process');
 
 const config = require('./../config');
 const {executeRemoteCommand} = require('./remoteCommands');
@@ -14,7 +16,7 @@ const {asyncForEach} = require('./tools');
 async function syncLogs(logFiles) {
 	return new Promise( async (resolve, reject) => {
 		try {
-			const result = await syncChunks(logFiles, 1, syncRemoteToLocal, 'syncLogs');
+			const result = await syncChunks(logFiles, 1, syncRemoteToLocal, 'syncLogs',);
 			return resolve(result);
 		} catch(err){
 			return reject(`syncLogs::${err}`);
@@ -29,8 +31,18 @@ async function syncLogFolders(){
 	return new Promise(async (resolve, reject) => {
 		try {
 			await asyncForEach(config.logFiles, async file => {
-				const command = `mkdir -p ${config.remoteBase}/${file[0]}`;
-				await executeRemoteCommand(command, null, `syncLogFolders`);
+
+				const remoteFilePath = `${config.remoteBase}/${file[0]}`;
+				const remoteFile = `${remoteFilePath}/${file[1]}`;
+				const localFile = join(__dirname, '../', file[2]);
+
+				await executeRemoteCommand(`mkdir -p ${remoteFilePath}`, connections, `syncLogFolders`, true); 
+				await executeRemoteCommand(`touch ${remoteFile}`, connections, `syncLogFolders`);
+
+				// create local file if doesn't exist
+				if (!existsSync(localFile)) {
+					await exec(`touch ${localFile}`);
+				}
 			});
 			return resolve();
 
@@ -45,6 +57,7 @@ async function syncLogFolders(){
  */
 async function syncLogsInterval() {
 	await syncLogFolders();
+	console.log('Logs folders synced');
 
 	let checkSync = true; // only allow one sync operation at a time
 	const formattedLogFiles = formatLogFiles(config.logFiles);

@@ -1,5 +1,4 @@
-const {exec} = require('child_process');
-const {createReadStream, existsSync} = require('fs');
+const {createReadStream} = require('fs');
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
@@ -427,16 +426,7 @@ async function syncRemoteToLocal({file, connections, fromName=''}) {
 		connections = await checkBothConnections(connections, 'syncRemoteToLocal');
 
 		try {
-			// try to create remote folder/file if doesn't exist
-			await executeRemoteCommand(`mkdir -p ${localBasePath}`, connections, `${fromName}::syncRemoteToLocal`, true); 
-			await executeRemoteCommand(`touch ${absoluteRemotePath}`, connections, `${fromName}::syncRemoteToLocal`);
 
-			// create local file if doesn't exist
-			if (!existsSync(absoluteLocalPath)) {
-				await exec(`touch ${absoluteLocalPath}`);
-			}
-
-			// sync remote to local
 			let syncedMessage = '';
 			const needSync = await needsSync({absoluteLocalPath, absoluteRemotePath, connections});
 			if(needSync) syncedMessage = await getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePath, connections});
