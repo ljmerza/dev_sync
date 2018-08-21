@@ -15,7 +15,7 @@
   },
   "scripts": {
     "start": "node --experimental-modules devSync.js",
-    "compile": "babel ./ --out-dir dist"
+    "compile": "babel ./ --out-dir dist --no-strict"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

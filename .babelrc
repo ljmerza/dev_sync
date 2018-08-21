@@ -1,0 +1,4 @@
+{
+	"plugins": ["transform-async-to-generator", "transform-object-rest-spread", "transform-es2015-spread"],
+	"presets": ["es2015"]
+}
