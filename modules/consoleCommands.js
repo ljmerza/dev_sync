@@ -169,7 +169,7 @@ async function logKeyPress(ch, key) {
 
 		}
 
-		await runCommandGiven(localPath, repoName, remotePath, repoName, command, hypnotoad, keyPresses);
+		await runCommandGiven(localPath, repoName, remotePath, command, hypnotoad, keyPresses);
 	}
 }
 
@@ -178,12 +178,11 @@ async function logKeyPress(ch, key) {
  * @param {string} localPath 
  * @param {string} repoName
  * @param {string} remotePath
- * @param {string} repoName
  * @param {string} command
  * @param {string} hypnotoad
  * @param {string} keyPresses
  */
-async function runCommandGiven(localPath, repoName, remotePath, repoName, command, hypnotoad, keyPresses){
+async function runCommandGiven(localPath, repoName, remotePath, command, hypnotoad, keyPresses){
 	let message = '';
 
 	try {
