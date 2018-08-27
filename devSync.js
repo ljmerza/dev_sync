@@ -25,7 +25,7 @@ let currentTimer = setTimeout(()=>{},0);
 	console.log(`Connected with ${server}`);
 
 	await watchRepos();
-	// await logs.syncLogsInterval();
+	await logs.syncLogsInterval();
 })();
 
 
