@@ -473,6 +473,7 @@ async function syncChunks(files, numberOfChunks, syncFunction, fromName, showPro
 					if(++processedChunks === fileChunks.length){
 						return resolve(syncResults);
 					};
+					
 				} catch(err) {
 					closeConnections(connections);
 					return reject(`fileChunks syncChunks::${err}`);
