@@ -1,4 +1,5 @@
 const Promise = require("bluebird");
+const chalk = require('chalk');
 
 const {checkSshConnection,closeConnections} = require("./connections");
 const {formatServerStdOut} = require('./formatting');
@@ -9,12 +10,16 @@ const {formatServerStdOut} = require('./formatting');
  * @param {ssh2 connection} connections
  */
 async function makeRemoteDirectory(basePath, connections, fromName) {
+	let closeConnections = !connections;
 	return new Promise(async (resolve, reject) => {
 		try {
 			connections = await checkSshConnection(connections, `${fromName}::makeRemoteDirectory`);
 			await executeRemoteCommand(`mkdir -p ${basePath}`, connections, `${fromName}::makeRemoteDirectory`);
+			if(closeConnections) await closeConnections(connections);
 			return resolve(basePath);
+
 		} catch(err){
+			if(closeConnections) await closeConnections(connections);
 			return reject(`makeRemoteDirectory::${err}`);
 		}
 	});
@@ -53,23 +58,6 @@ async function deleteRemoteFile({remotePath, connections, fromName}){
 }
 
 /**
- * deletes a repo's remote folder
- * @param {string} repoPath
- * @param {ssh2 connection} connections
- */
-async function deleteRemoteRepo(repoPath, connections, fromName) {
-	console.log('deleting remote repo folder...');
-	return new Promise(async (resolve, reject) => {
-		try {
-			await executeRemoteCommand(`rm -rd ${repoPath}`, connections, `${fromName}::deleteRemoteRepo`);
-		} catch(err){
-			return reject(`deleteRemoteRepo::${err}`);
-		}
-		return resolve();
-	});
-}
-
-/**
  * update permissions for all uploaded files
  * @param {Array<object>} uploadedFiles
  */
@@ -100,11 +88,12 @@ async function updatePermissions(uploadedFiles, fromName, connections) {
 async function executeRemoteCommand(command, connections, fromName='executeRemoteCommand', returnResult=false) {
 	return new Promise(async (resolve, reject) => {
 		let closeConnection = !connections;
+
 		let returnValue = '';
 		try {
 			connections = await checkSshConnection(connections, `${fromName}::executeRemoteCommand`);
 
-			connections.sshConnection.exec(command, (err, stream) => {
+			connections.sshConnection.exec(command, async (err, stream) => {
 				if(err) return reject(`stream error executeRemoteCommand::${err}`);
 
 				// on data or error event -> format then log stdout from server
@@ -123,14 +112,14 @@ async function executeRemoteCommand(command, connections, fromName='executeRemot
 					if(!returnResult) console.log(error);
 					else returnValue += error;
 
-	  			}).on('close', () => { 
-					if(closeConnection) closeConnections(connections);
+	  			}).on('close', async () => { 
+					if(closeConnection) await closeConnections(connections);
 					return resolve(returnValue);
 				});
 			});
 
 		} catch(err) {
-			if(closeConnection) closeConnections(connections);
+			if(closeConnection) await closeConnections(connections);
 			return reject(`executeRemoteCommand::${err}`);
 		}
 	});
@@ -143,7 +132,7 @@ async function executeRemoteCommand(command, connections, fromName='executeRemot
  * @param {string} repoName
  */
 async function restartHypnotoad({path, repoName, connections, fromName='restartHypnotoad'}) {
-	console.log(`restarting ${repoName} hypnotoad...`);
+	console.log(chalk.yellow(`restarting ${repoName} hypnotoad...`));
 
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -161,7 +150,7 @@ async function restartHypnotoad({path, repoName, connections, fromName='restartH
  * 
  */
 async function restartApache({connections, fromName='restartApache'}) {
-	console.log(`restarting apache...`);
+	console.log(chalk.yellow(`restarting apache...`));
 
 	return new Promise(async (resolve, reject) => {
 		try {			
@@ -210,7 +199,7 @@ async function deleteRemote(remotePath){
 
 module.exports = {
 	makeRemoteDirectory, deleteRemoteDirectory, 
-	deleteRemoteFile, deleteRemoteRepo, updatePermissions, 
+	deleteRemoteFile, updatePermissions, 
 	restartHypnotoad, restartApache, getRemoteFileTree, 
 	deleteRemote, executeRemoteCommand
 }

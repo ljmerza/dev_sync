@@ -1,5 +1,6 @@
 const SSH2 = require('ssh2');
 const fs = require('fs');
+const chalk = require('chalk');
 
 const config = require('./../config');
 const {asyncForEach} = require('./tools');
@@ -46,7 +47,7 @@ async function sshConnectionPromise(fromName='sshConnectionPromise') {
 /**
  *
  */
-async function checkSftpConnection(connections, fromName='checkSftpConnection'){
+async function checkSftpConnection(connections, fromName=''){
 	return new Promise(async (resolve, reject) => {
 		try {
 			if(!connections || !connections.sftpConnection) {
@@ -62,7 +63,7 @@ async function checkSftpConnection(connections, fromName='checkSftpConnection'){
 /**
  *
  */
-async function checkSshConnection(connections, fromName='checkSshConnection'){
+async function checkSshConnection(connections, fromName=''){
 	return new Promise(async (resolve, reject) => {
 		try {
 			if(!connections || !connections.sshConnection) {
@@ -89,7 +90,7 @@ async function checkBothConnections(connections, fromName='checkBothConnections'
 *	sftpConnectionPromise()
 * 		return a sFTP connection promise
 */
-async function sftpConnectionPromise(fromName='sftpConnectionPromise') {
+async function sftpConnectionPromise(fromName='') {
 	return new Promise(async (resolve, reject) => {
 		let connections;
 		try {
@@ -100,7 +101,7 @@ async function sftpConnectionPromise(fromName='sftpConnectionPromise') {
 				return resolve(connections);
 			});
 		} catch(err){
-			closeConnections(connections);
+			await closeConnections(connections);
 			return reject(`sftpConnectionPromise::${err}`);
 		}
 	});
@@ -127,12 +128,12 @@ async function overrideConnection(connection, isSftp=false, fromName='overrideCo
 		// save internal properties and log what we are doing
 		connection.isSftp = isSftp;
 		connection.fromName = fromName;
-		if(debug) console.log(`open connection for ${isSftp ? 'SFTP' : 'SSH'} from ${fromName}`);
+		// console.log(`open connection for ${isSftp ? 'SFTP' : 'SSH'} from ${fromName}`);
 
 		// override end function
 		const endConnection = connection.end;
 		connection.end = async function(){
-			if(debug) console.log(`close connection for ${connection.isSftp ? 'SFTP' : 'SSH'} from ${connection.fromName}`);
+			// console.log(`close connection for ${connection.isSftp ? 'SFTP' : 'SSH'} from ${connection.fromName}`);
 
 			// call end to connection 
 			endConnection.apply(this);
@@ -149,19 +150,19 @@ async function overrideConnection(connection, isSftp=false, fromName='overrideCo
  * ends any passed in connections
  */
 async function closeConnections(connection){
-	if(connection && connection.sshConnection) connection.sshConnection.end();
-	if(connection && connection.sftpConnection) connection.sftpConnection.end();
-	if(connection && connection.end) connection.end();
+	if(connection && connection.sshConnection) await connection.sshConnection.end();
+	if(connection && connection.sftpConnection) await connection.sftpConnection.end();
+	if(connection && connection.end) await connection.end();
 } 
 
 /**
  * kills all open connections (that are tracked)
  */
 async function killAllConnections(){
-	console.log('killing all connections!');
+	console.log(chalk.red('killing all connections!'));
 	await asyncForEach(connections, async connObject =>{
 		await connObject.connection.end();
-		console.log('killed connection!');
+		console.log(chalk.red('killed connection!'));
 	});
 }
 

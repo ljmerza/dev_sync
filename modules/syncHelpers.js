@@ -1,4 +1,5 @@
 const {createReadStream} = require('fs');
+const chalk = require('chalk');
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
@@ -431,11 +432,11 @@ async function syncRemoteToLocal({file, connections, fromName=''}) {
 			const needSync = await needsSync({absoluteLocalPath, absoluteRemotePath, connections});
 			if(needSync) syncedMessage = await getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePath, connections});
 
-			if(closeConnections) closeConnections(connections);
+			if(closeConnections) await closeConnections(connections);
 			return resolve(syncedMessage);
 
 		} catch(err){
-			if(closeConnections) closeConnections(connections);
+			if(closeConnections) await closeConnections(connections);
 			return reject(`syncRemoteToLocal::${err}`);
 		}	
 	});
@@ -457,6 +458,8 @@ async function syncChunks(files, numberOfChunks, syncFunction, fromName, showPro
 			let processedChunks = 0;
 
 			const fileChunks = chunkFiles({files, numberOfChunks});
+			console.log(chalk.yellow(`Files chunked into ${fileChunks.length} chunks`));
+
 			fileChunks.forEach(async chunkOfFiles => {
 
 				try {

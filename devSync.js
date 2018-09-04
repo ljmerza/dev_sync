@@ -2,11 +2,13 @@ const path = require('path');
 const fs = require('fs');
 const Promise = require("bluebird");
 const chokidar = require('chokidar');
+const chalk = require('chalk');
 
 const {formatPaths} = require("./modules/formatting");
 const {syncObjects, processSyncedObjects} = require("./modules/syncHelpers");
 const {executeRemoteCommand} = require("./modules/remoteCommands");
 
+const {asyncForEach} = require('./modules/tools');
 const logs = require("./modules/logs");
 const config = require('./config');
 
@@ -22,10 +24,10 @@ let currentTimer = setTimeout(()=>{},0);
 // test connection to dev server then start watching
 (async () => {
 	const server = await executeRemoteCommand('hostname', null, 'hostname', true);
-	console.log(`Connected with ${server}`);
+	console.log(chalk.green(`Connected with ${server}`));
 
-	await watchRepos();
 	await logs.syncLogsInterval();
+	await watchRepos();
 })();
 
 
@@ -35,32 +37,48 @@ let currentTimer = setTimeout(()=>{},0);
 /**
  * format dirs to relative path of this file then create watcher
  */
-function watchRepos() {
-	console.log('watching the following repositories:');
+async function watchRepos() {
+	console.log(chalk.greenBright('watching the following repositories:'));
 
-	Object.keys(config.localPaths)
-	.map( repo => { return {dir: `../${config.localPaths[repo]}/`, repo} })
-	.forEach( element => {
+	const watchDirs = Object.keys(config.localPaths)
+	.map( repo => { return {dir: `../${config.localPaths[repo]}/`, repo} });
 
-		chokidar.watch(path.join(__dirname, element.dir), {
-			ignored: /\.git|node_modules|bower_components|\/tmp\//,
-			persistent: true,
-			ignoreInitial: true,
-		})
-		.on('add', path => addToSync(path, 'add', element.repo))
-		.on('change', path => addToSync(path, 'change', element.repo))
-		.on('unlink', path => addToSync(path, 'unlink', element.repo))
-		.on('addDir', path => addToSync(path, 'addDir', element.repo))
-		.on('unlinkDir', path => addToSync(path, 'unlinkDir', element.repo))
-		.on('error', error => console.log('watcher ERROR: ', error))
-		.on('ready', () => console.log('	', element.repo));
-
-		function addToSync(localPath, action, repo){
-			changedFiles.push({localPath, repo, action});
-			syncFilesTimer();
+	await asyncForEach(watchDirs, async element => {
+		try {
+			const result = await addFolderToSync(element);
+			console.log(chalk.greenBright(result));
+		} catch(error){
+			console.log(chalk.red(`Could not sync folder: ${error}`));
 		}
 	});
+
+	console.log(chalk.greenBright('All folders watched'));
 }
+
+/**
+ *
+ */
+ async function addFolderToSync(element){
+ 	return new Promise((resolve, reject) => {
+	 	chokidar.watch(path.join(__dirname, element.dir), {
+				ignored: /\.git|node_modules|bower_components|\/tmp\//,
+				persistent: true,
+				ignoreInitial: true,
+			})
+			.on('add', path => addToSync(path, 'add', element.repo))
+			.on('change', path => addToSync(path, 'change', element.repo))
+			.on('unlink', path => addToSync(path, 'unlink', element.repo))
+			.on('addDir', path => addToSync(path, 'addDir', element.repo))
+			.on('unlinkDir', path => addToSync(path, 'unlinkDir', element.repo))
+			.on('error', error => reject('watcher ERROR: ', error))
+			.on('ready', () => resolve(`	${element.repo}`));
+
+			function addToSync(localPath, action, repo){
+				changedFiles.push({localPath, repo, action});
+				syncFilesTimer();
+			}
+	});
+ }
 
 /**
 */

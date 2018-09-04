@@ -2,6 +2,7 @@
 const keypress = require('keypress');
 const Promise = require("bluebird");
 const clear = require("cli-clear");
+const chalk = require('chalk');
 
 const config = require('./../config');
 
@@ -34,143 +35,145 @@ async function logKeyPress(ch, key) {
 	else if(ch) collectedKeys += ch.trim();
 	else return;
 
-	// if we hit return then lets see if we have a match
-	if(key && key.name === 'return') {
-
-		let localPath = '';
-		let remotePath = '';
-		let hypnotoad = '';
-		let repoName = '';
-		let command = '';
-
-		// reset all key presses
-		const keyPresses = collectedKeys;
-		collectedKeys = '';
-		if(!keyPresses) return;
-
-		if ( keyPresses.match(/^killall$/i) ) {
-			await killAllConnections();
-			return;
-
-
-		// repos
-		} else if ( config.localPaths[keyPresses] ) {
-			localPath = `../${config.localPaths[keyPresses]}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths[keyPresses]}`;
-			repoName = keyPresses;
-
-		// udember and udapi
-		} else if ( keyPresses.match(/^udember$/i) ) {
-			localPath = `../${config.localPaths.ud_ember}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.ud_ember}`;
-			repoName = 'ud_ember';
-		} else if ( keyPresses.match(/^udapi$/i) ) {
-			localPath = `../${config.localPaths.ud_api}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
-			repoName = 'ud_api';
-
-		// API repos
-		} else if ( keyPresses.match(/^teamdb(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.teamdbapi}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.teamdbapi}`;
-			repoName = 'teamdbapi';
-
-		} else if ( keyPresses.match(/^wam(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.wam_api}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.wam_api}`;
-			repoName = 'wam_api';
-
-		} else if ( keyPresses.match(/^upm(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.upm_api}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
-			repoName = 'upm_api';
-
-		} else if ( keyPresses.match(/^aqe(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.aqe_api}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.aqe_api}`;
-			repoName = 'aqe_api';
-
-		} else if ( keyPresses.match(/^ud(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.ud_api}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
-			repoName = 'UD_api';
-
-		} else if ( keyPresses.match(/^upm(_| )?api$/i) ) {
-			localPath = `../${config.localPaths.upm_api}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
-			repoName = 'upm_api';
-			
-		} else if ( keyPresses.match(/^modules$/i) ) {
-			localPath = `../${config.localPaths.modules}`;
-			remotePath = `${config.remoteBase}/${config.remotePaths.modules}`;
-			repoName = 'modules';
-
-		// hypnotoads
-		} else if ( keyPresses.match(/^(hyp|hypno|hypnotoad|h)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.ud_api}`;
-			repoName = 'UD_api';
-
-		} else if ( keyPresses.match(/^(thyp|thypno|thypnotoad)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.teamdbapi}`; 
-			repoName = 'teamdb'; 
-			
-		} else if ( keyPresses.match(/^(tthyp|tthypno|tthypnotoad)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.template_api}`; 
-			repoName = 'template_api'; 
-
-		} else if ( keyPresses.match(/^(ahyp|ahypno|ahypnotoad)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.aqe_api}`;
-			repoName = 'AQE';
-
-		} else if ( keyPresses.match(/^(whyp|whypno|whypnotoad)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.wam_api}`;
-			repoName = 'WAM';
-
-		} else if ( keyPresses.match(/^(uhyp|uhypno|uhypnotoad)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.utm_api}`;
-			repoName = 'UTM';
-
-		} else if ( keyPresses.match(/^(phyp|phypno|phypnotoad)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.upm_api}`;
-			repoName = 'UPM';
-
-		// apache
-		} else if ( keyPresses.match(/^(m|apache|pach)$/i) ) {
-			restartApache({fromName:'consoleCommands'})
-			.catch( message => console.log(message) );
-			return;
-
-		// apache and hypnotoad
-		} else if ( keyPresses.match(/^(hm|mh)$/i) ) {
-			hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.ud_api}`;
-			repoName = 'UD_api';
-			restartApache({fromName:'consoleCommands'})
-			.catch( message => console.log(message) );
-
-		// reset modules folder
-		} else if ( keyPresses === 'cmod' ) {
-			command = `find ${config.remoteBase}/${config.remotePaths.modules} -type f -exec rm {} +`;
-			repoName = 'modules';
-
-		// custom command
-		} else if ( keyPresses.match(/^cmd [a-zA-Z0-9_.-]+/i) ) {
-			command = keyPresses.slice(4,keyPresses.length);
-			message = `custom command: ${command}`;
-
-		// help
-		} else if ( keyPresses.match(/^help$/i) ) {
-			console.log(help); 
-			return;
-
-		// clear console
-		} else if ( keyPresses.match(/^clear|c$/i) ) {
-			clear();
-			return;
-
-		}
-
-		await runCommandGiven(localPath, repoName, remotePath, command, hypnotoad, keyPresses);
+	// we are done if the key isn't the return key
+	if(!key || key.name !== 'return') {
+		return;
 	}
+
+	let localPath = '';
+	let remotePath = '';
+	let hypnotoad = '';
+	let repoName = '';
+	let command = '';
+
+	// reset all key presses
+	const keyPresses = collectedKeys;
+	collectedKeys = '';
+	if(!keyPresses) return;
+
+	console.log(chalk.green(`Running command: ${keyPresses}`));
+
+	if ( keyPresses.match(/^killall$/i) ) {
+		await killAllConnections();
+		return;
+
+	// repos
+	} else if ( config.localPaths[keyPresses] ) {
+		localPath = `../${config.localPaths[keyPresses]}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths[keyPresses]}`;
+		repoName = keyPresses;
+
+	// udember and udapi
+	} else if ( keyPresses.match(/^udember$/i) ) {
+		localPath = `../${config.localPaths.ud_ember}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.ud_ember}`;
+		repoName = 'ud_ember';
+	} else if ( keyPresses.match(/^udapi$/i) ) {
+		localPath = `../${config.localPaths.ud_api}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
+		repoName = 'ud_api';
+
+	// API repos
+	} else if ( keyPresses.match(/^teamdb(_| )?api$/i) ) {
+		localPath = `../${config.localPaths.teamdbapi}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.teamdbapi}`;
+		repoName = 'teamdbapi';
+
+	} else if ( keyPresses.match(/^wam(_| )?api$/i) ) {
+		localPath = `../${config.localPaths.wam_api}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.wam_api}`;
+		repoName = 'wam_api';
+
+	} else if ( keyPresses.match(/^upm(_| )?api$/i) ) {
+		localPath = `../${config.localPaths.upm_api}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
+		repoName = 'upm_api';
+
+	} else if ( keyPresses.match(/^aqe(_| )?api$/i) ) {
+		localPath = `../${config.localPaths.aqe_api}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.aqe_api}`;
+		repoName = 'aqe_api';
+
+	} else if ( keyPresses.match(/^ud(_| )?api$/i) ) {
+		localPath = `../${config.localPaths.ud_api}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
+		repoName = 'UD_api';
+
+	} else if ( keyPresses.match(/^upm(_| )?api$/i) ) {
+		localPath = `../${config.localPaths.upm_api}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
+		repoName = 'upm_api';
+		
+	} else if ( keyPresses.match(/^modules$/i) ) {
+		localPath = `../${config.localPaths.modules}`;
+		remotePath = `${config.remoteBase}/${config.remotePaths.modules}`;
+		repoName = 'modules';
+
+	// hypnotoads
+	} else if ( keyPresses.match(/^(hyp|hypno|hypnotoad|h)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.ud_api}`;
+		repoName = 'UD_api';
+
+	} else if ( keyPresses.match(/^(thyp|thypno|thypnotoad)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.teamdbapi}`; 
+		repoName = 'teamdb'; 
+		
+	} else if ( keyPresses.match(/^(tthyp|tthypno|tthypnotoad)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.template_api}`; 
+		repoName = 'template_api'; 
+
+	} else if ( keyPresses.match(/^(ahyp|ahypno|ahypnotoad)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.aqe_api}`;
+		repoName = 'AQE';
+
+	} else if ( keyPresses.match(/^(whyp|whypno|whypnotoad)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.wam_api}`;
+		repoName = 'WAM';
+
+	} else if ( keyPresses.match(/^(uhyp|uhypno|uhypnotoad)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.utm_api}`;
+		repoName = 'UTM';
+
+	} else if ( keyPresses.match(/^(phyp|phypno|phypnotoad)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.upm_api}`;
+		repoName = 'UPM';
+
+	// apache
+	} else if ( keyPresses.match(/^(m|apache|pach)$/i) ) {
+		restartApache({fromName:'consoleCommands'})
+		.catch( message => console.log(message) );
+		return;
+
+	// apache and hypnotoad
+	} else if ( keyPresses.match(/^(hm|mh)$/i) ) {
+		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.ud_api}`;
+		repoName = 'UD_api';
+		restartApache({fromName:'consoleCommands'})
+		.catch( message => console.log(message) );
+
+	// reset modules folder
+	} else if ( keyPresses === 'cmod' ) {
+		command = `find ${config.remoteBase}/${config.remotePaths.modules} -type f -exec rm {} +`;
+		repoName = 'modules';
+
+	// custom command
+	} else if ( keyPresses.match(/^cmd [a-zA-Z0-9_.-]+/i) ) {
+		command = keyPresses.slice(4,keyPresses.length);
+		message = `custom command: ${command}`;
+
+	// help
+	} else if ( keyPresses.match(/^help$/i) ) {
+		console.log(help); 
+		return;
+
+	// clear console
+	} else if ( keyPresses.match(/^clear|c$/i) ) {
+		clear();
+		return;
+
+	}
+
+	await runCommandGiven(localPath, repoName, remotePath, command, hypnotoad, keyPresses);
 }
 
 /**
@@ -188,16 +191,16 @@ async function runCommandGiven(localPath, repoName, remotePath, command, hypnoto
 	try {
 		// sync repo
 		if (localPath) {
-			console.log(`syncing ${repoName}...`);
+			console.log(chalk.green(`syncing ${repoName}...`));
 			await transferRepo({ localPath, remoteBasePath: remotePath, repo: repoName });
 
 		} else if (command) {
 			// custom commands, deleting folders, restarting repos
-			if (repoName.match('custom command')) console.log(repoName);
-			else if (repoName.match('modules')) console.log(`deleting ${repoName} folder...`);
-			else console.log(`restarting ${config.repoName}...`);
+			if (repoName.match('custom command')) console.log(chalk.green(repoName));
+			else if (repoName.match('modules')) console.log(chalk.red(`deleting ${repoName} folder...`));
+			else console.log(chalk.yellow(`restarting ${config.repoName}...`));
 			message = await executeRemoteCommand(command, null, 'consoleCommands');
-			if (repoName.match('modules')) console.log(`deleted ${repoName} folder`);
+			if (repoName.match('modules')) console.log(chalk.red(`deleted ${repoName} folder`));
 
 		} else if (hypnotoad) {
 			message = await restartHypnotoad({ path: hypnotoad, repoName, fromName: 'consoleCommands' });
@@ -206,14 +209,14 @@ async function runCommandGiven(localPath, repoName, remotePath, command, hypnoto
 			message = await resetLogs('consoleCommands');
 
 		} else {
-			console.log('Incorrect command type `help` to see options');
+			console.log(chalk.red('Incorrect command type `help` to see options'));
 		}
 
 		// finally log message from command execution
 		if (message) console.log(message);
 
 	} catch (err) {
-		console.log(`consoleCommands::${err}`);
+		console.log(chalk.red(`consoleCommands::${err}`));
 	}
 }
 
@@ -233,7 +236,7 @@ sync repo to server by typing the repo name and pressing enter. Supported repos:
 ${watchingPaths}
 
 restart hypnotoad with *hyp:
-		hyp - udapi, thyp - teamdb, 
+		hyp - udapi, thyp - teamdb, tthyp - template_api,
 		ahyp - aqe, phyp - upm, whyp - wam
 
 reset logs with 'logs' command (no quotes)
