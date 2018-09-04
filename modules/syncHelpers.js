@@ -458,7 +458,7 @@ async function syncChunks(files, numberOfChunks, syncFunction, fromName, showPro
 			let processedChunks = 0;
 
 			const fileChunks = chunkFiles({files, numberOfChunks});
-			console.log(chalk.yellow(`Files chunked into ${fileChunks.length} chunks`));
+			if(showProgress) console.log(chalk.yellow(`Files chunked into ${fileChunks.length} chunks`));
 
 			fileChunks.forEach(async chunkOfFiles => {
 
