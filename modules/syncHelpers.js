@@ -121,7 +121,6 @@ async function syncLocalToRemote({file, connections, fromName='syncLocalToRemote
 			const result = await setRemoteFile({
 				absoluteRemotePath: file.absoluteRemotePath, 
 				absoluteLocalPath: file.absoluteLocalPath, 
-				localBasePath: file.localBasePath,
 				localFilePath: file.localFilePath, 
 				connections, 
 				fromName
@@ -395,7 +394,7 @@ async function getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePa
 /**
  * gets a remote file and syncs it to a local file
  */
-async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePath, localFilePath, connections, fromName='setRemoteFile'}){
+async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localFilePath, connections, fromName='setRemoteFile'}){
 	return new Promise(async (resolve, reject) => {
 		let closeConnection = !connections;
 
@@ -458,7 +457,6 @@ async function syncChunks(files, numberOfChunks, syncFunction, fromName, showPro
 			let processedChunks = 0;
 
 			const fileChunks = chunkFiles({files, numberOfChunks});
-			if(showProgress) console.log(chalk.yellow(`Files chunked into ${fileChunks.length} chunks`));
 
 			fileChunks.forEach(async chunkOfFiles => {
 

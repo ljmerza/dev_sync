@@ -4,7 +4,7 @@ const Promise = require("bluebird");
 const chokidar = require('chokidar');
 const chalk = require('chalk');
 
-const {formatPaths} = require("./modules/formatting");
+const {retrievePaths} = require("./modules/formatting");
 const {syncObjects, processSyncedObjects} = require("./modules/syncHelpers");
 const {executeRemoteCommand} = require("./modules/remoteCommands");
 
@@ -104,7 +104,7 @@ async function sftpUpload() {
 		// for each file, format paths
 		const modifiedUploadFiles = uploadFiles.map( file => {
 			// create local/remote paths and get base path of file/folder
-			const {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath} = formatPaths(file);
+			const {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath} = retrievePaths(file);
 			// return new structure
 			return {localFilePath, absoluteRemotePath, remoteBasePath, repo:file.repo, action:file.action, localBasePath, absoluteLocalPath};
 		});

@@ -3,104 +3,32 @@ const { join, dirname } = require('path');
 
 // what is the folder depth of the base path to all watched files?
 const basePath = join(__dirname, '../..');
-const basePathDepth = basePath.split('\\').length-1;
 
 
 /**
  * formats local and remote file paths for sFTP
  * @param {object} changedFile
  */
-function formatPaths(changedFile) {
-	const sliceNumber = getSliceNumber(changedFile);
+function retrievePaths(changedFile) {
 
-	const localBasePath = dirname(changedFile.localPath);
-	const windowsBasePath = basePath.replace(/\\/g, '/');
-	const localFilePathRaw = changedFile.localPath.replace(/\\/g, '/').replace(windowsBasePath, '');
-	const localFilePath = localFilePathRaw[0] === '/' ? localFilePathRaw.substring(1) : localFilePathRaw;
+	// get config info for repo
+	const localRepoPath = config.localPaths[changedFile.repo];
+	const remoteRepoPath = config.remotePaths[changedFile.repo];
+
+	// get local path data
 	const absoluteLocalPath = changedFile.localPath;
-	const absoluteRemotePath = formatRemotePath({localPath:changedFile.localPath, sliceNumber, repo:changedFile.repo});
+	const localBasePath = dirname(changedFile.localPath);
+	const localFilePath = changedFile.localPath.replace(basePath, '');
+	
+	// get remote path data
+	const fileBasePath = join(basePath, localRepoPath.replace(/\//, '\\'));
+	const repoFileBasePath = changedFile.localPath.replace(fileBasePath, '').replace(/\//g, '\\\\');
+	const remoteFilePath = repoFileBasePath.replace(fileBasePath, '').replace(/\\/g, '/');
+
+	const absoluteRemotePath = `${config.remoteBase}/${remoteRepoPath}${remoteFilePath}`;
 	const remoteBasePath = ['addDir', 'unlinkDir'].includes(changedFile.action) ? absoluteRemotePath : dirname(absoluteRemotePath);
 	
 	return {localFilePath, absoluteRemotePath, localBasePath, absoluteLocalPath, remoteBasePath};
-}
-
-/**
- * how many folders to strip from file path from beginning
- * @param {Object} changedFile 
- */
-function getSliceNumber(changedFile){
-	let sliceNumber = 1;
-
-	// these repos require the object path to be stripped to concat with the base path
-	if (['modules', 'external_modules', 'dev_scripts'].includes(changedFile.repo))
-		sliceNumber = 2;
-	else if (['aqe', 'wam', 'upm', 'tqi', 'ud_ember', 'udember', 'teamdbapi', 'aqe_cron', 'ud_cron', 'template_api', 'template_ember'].includes(changedFile.repo))
-		sliceNumber = 3;
-	else if (['ud'].includes(changedFile.repo))
-		sliceNumber = 4;
-	else if (['wam_cron'].includes(changedFile.repo))
-		sliceNumber = 5;
-
-	return sliceNumber;
-}
-
-/**
- * formats a local file path for remote path
- * @param {string} localPath
- * @param {integer} sliceNumber
- * @param {string} repo
- */
-function formatRemotePath({localPath, sliceNumber, repo}) {
-	localPath = changeUdCapitalization(localPath);
-
-	// get remote path from local path
-	const remotePath = localPath.split('\\').slice(sliceNumber+basePathDepth).join('/');
-
-	// return full remote path based on repo type
-	if(repo.match(/cron/)){
-		return `${config.remoteBase}/crons/${repo}/${remotePath}`;
-	} else if (['modules', 'external_modules', 'dev_scripts'].includes(repo)) {
-		return `${config.remoteBase}/includes/${remotePath}`;
-	} else if (['ud_ember', 'udember'].includes(repo)) {
-		return `${config.remoteBase}/www/UD_ember/UD/${remotePath}`;
-	} else if (['teamdbapi'].includes(repo)) {
-		return `${config.remoteBase}/www/teamdbapi/${remotePath}`;
-	} else if (['template_api'].includes(repo)) {
-		return `${config.remoteBase}/www/template_api/${remotePath}`;
-	} else if (['template_ember'].includes(repo)) {
-		return `${config.remoteBase}/www/template_ember/${remotePath}`;
-	} else {
-		return `${config.remoteBase}/www/${remotePath}`;
-	}	
-}
-
-/**
- * 
- * @param {string} localPath 
- */
-function changeUdCapitalization(localPath){
-	// change capitalization of UD if needed
-	if (localPath.match(/\\ud_api\\/)) {
-		localPath = localPath.replace('ud_api', 'UD_api');
-	} else if (localPath.match(/\\ud\\/)) {
-		localPath = localPath.replace('\\ud\\', '\\UD\\');
-	}
-
-	return localPath;
-}
-
-
-/**
- * makes sure file paths have proper folder structure for Windows/UNIX
- * @param {Array<object>} allFilesData
- */
-function formatFiles(allFilesData) {
-	return allFilesData.map( file => {
-		file.remotePath = file.remotePath.replace(/\\/g, '/');
-		file.localPath = file.localPath.replace(/\//g, '\\');
-		file.basePath = file.basePath.replace(/\\/g, '/');
-		return file;
-	});
 }
 
 /**
@@ -114,7 +42,7 @@ function formatServerStdOut(data){
 }
 
 /**
- * creates remote and local absoluate paths when syncing an entire repo
+ * creates remote and local absolute paths when syncing an entire repo
  * @param {Array<string>} files
  * @param {string} absoluteRemotePath
  * @param {string} localPath
@@ -174,7 +102,7 @@ function filterNodeAndGitFiles({files}){
 }
 
 module.exports = {
-	formatPaths, formatFiles, filterNodeAndGitFiles,
+	retrievePaths, filterNodeAndGitFiles,
 	formatServerStdOut, getAbsoluteRemoteAndLocalPaths,
 	stripRemotePathForDisplay, formatLogFiles
 };
