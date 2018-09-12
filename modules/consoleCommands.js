@@ -14,6 +14,9 @@ const {transferRepo} = require('./syncHelpers');
 // make `process.stdin` begin emitting "keypress" events
 keypress(process.stdin);
 
+const localReposWatched = Object.keys(config.localPaths).map(repo => repo.toLowerCase());
+const remoteReposWatched = Object.keys(config.remotePaths).map(repo => repo.toLowerCase());
+
 let collectedKeys = '';
 process.stdin.on('keypress', logKeyPress);
 
@@ -47,7 +50,7 @@ async function logKeyPress(ch, key) {
 	let command = '';
 
 	// reset all key presses
-	const keyPresses = collectedKeys;
+	const keyPresses = collectedKeys.toLowerCase();
 	collectedKeys = '';
 	if(!keyPresses) return;
 
@@ -58,116 +61,116 @@ async function logKeyPress(ch, key) {
 		return;
 
 	// repos
-	} else if ( config.localPaths[keyPresses] ) {
+	} else if ( localReposWatched.includes(keyPresses) ) {
 		localPath = `../${config.localPaths[keyPresses]}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths[keyPresses]}`;
 		repoName = keyPresses;
 
 	// udember and udapi
-	} else if ( keyPresses.match(/^udember$/i) ) {
+	} else if ( keyPresses.match(/^udember$/ig) ) {
 		localPath = `../${config.localPaths.ud_ember}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.ud_ember}`;
 		repoName = 'ud_ember';
-	} else if ( keyPresses.match(/^udapi$/i) ) {
+	} else if ( keyPresses.match(/^udapi$/ig) ) {
 		localPath = `../${config.localPaths.ud_api}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
 		repoName = 'ud_api';
 
 	// API repos
-	} else if ( keyPresses.match(/^teamdb(_| )?api$/i) ) {
+	} else if ( keyPresses.match(/^teamdb(_| )?api$/ig) ) {
 		localPath = `../${config.localPaths.teamdbapi}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.teamdbapi}`;
 		repoName = 'teamdbapi';
 
-	} else if ( keyPresses.match(/^wam(_| )?api$/i) ) {
+	} else if ( keyPresses.match(/^wam(_| )?api$/ig) ) {
 		localPath = `../${config.localPaths.wam_api}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.wam_api}`;
 		repoName = 'wam_api';
 
-	} else if ( keyPresses.match(/^upm(_| )?api$/i) ) {
+	} else if ( keyPresses.match(/^upm(_| )?api$/ig) ) {
 		localPath = `../${config.localPaths.upm_api}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
 		repoName = 'upm_api';
 
-	} else if ( keyPresses.match(/^aqe(_| )?api$/i) ) {
+	} else if ( keyPresses.match(/^aqe(_| )?api$/ig) ) {
 		localPath = `../${config.localPaths.aqe_api}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.aqe_api}`;
 		repoName = 'aqe_api';
 
-	} else if ( keyPresses.match(/^ud(_| )?api$/i) ) {
+	} else if ( keyPresses.match(/^ud(_| )?api$/ig) ) {
 		localPath = `../${config.localPaths.ud_api}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.ud_api}`;
 		repoName = 'UD_api';
 
-	} else if ( keyPresses.match(/^upm(_| )?api$/i) ) {
+	} else if ( keyPresses.match(/^upm(_| )?api$/ig) ) {
 		localPath = `../${config.localPaths.upm_api}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.upm_api}`;
 		repoName = 'upm_api';
 		
-	} else if ( keyPresses.match(/^modules$/i) ) {
+	} else if ( keyPresses.match(/^modules$/ig) ) {
 		localPath = `../${config.localPaths.modules}`;
 		remotePath = `${config.remoteBase}/${config.remotePaths.modules}`;
 		repoName = 'modules';
 
 	// hypnotoads
-	} else if ( keyPresses.match(/^(hyp|hypno|hypnotoad|h)$/i) ) {
+	} else if ( keyPresses.match(/^(hyp|hypno|hypnotoad|h)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.ud_api}`;
 		repoName = 'UD_api';
 
-	} else if ( keyPresses.match(/^(thyp|thypno|thypnotoad)$/i) ) {
+	} else if ( keyPresses.match(/^(thyp|thypno|thypnotoad)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.teamdbapi}`; 
 		repoName = 'teamdb'; 
 		
-	} else if ( keyPresses.match(/^(tthyp|tthypno|tthypnotoad)$/i) ) {
+	} else if ( keyPresses.match(/^(tthyp|tthypno|tthypnotoad)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.template_api}`; 
 		repoName = 'template_api'; 
 
-	} else if ( keyPresses.match(/^(ahyp|ahypno|ahypnotoad)$/i) ) {
+	} else if ( keyPresses.match(/^(ahyp|ahypno|ahypnotoad)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.aqe_api}`;
 		repoName = 'AQE';
 
-	} else if ( keyPresses.match(/^(whyp|whypno|whypnotoad)$/i) ) {
+	} else if ( keyPresses.match(/^(whyp|whypno|whypnotoad)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.wam_api}`;
 		repoName = 'WAM';
 
-	} else if ( keyPresses.match(/^(uhyp|uhypno|uhypnotoad)$/i) ) {
+	} else if ( keyPresses.match(/^(uhyp|uhypno|uhypnotoad)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.utm_api}`;
 		repoName = 'UTM';
 
-	} else if ( keyPresses.match(/^(phyp|phypno|phypnotoad)$/i) ) {
+	} else if ( keyPresses.match(/^(phyp|phypno|phypnotoad)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.upm_api}`;
 		repoName = 'UPM';
 
 	// apache
-	} else if ( keyPresses.match(/^(m|apache|pach)$/i) ) {
+	} else if ( keyPresses.match(/^(m|apache|pach)$/ig) ) {
 		restartApache({fromName:'consoleCommands'})
 		.catch( message => console.log(message) );
 		return;
 
 	// apache and hypnotoad
-	} else if ( keyPresses.match(/^(hm|mh)$/i) ) {
+	} else if ( keyPresses.match(/^(hm|mh)$/ig) ) {
 		hypnotoad = `${config.remoteBase}/${config.hypnotoadPaths.ud_api}`;
 		repoName = 'UD_api';
 		restartApache({fromName:'consoleCommands'})
 		.catch( message => console.log(message) );
 
 	// reset modules folder
-	} else if ( keyPresses === 'cmod' ) {
+	} else if ( keyPresses.match(/^cmod$/ig) ) {
 		command = `find ${config.remoteBase}/${config.remotePaths.modules} -type f -exec rm {} +`;
 		repoName = 'modules';
 
 	// custom command
-	} else if ( keyPresses.match(/^cmd [a-zA-Z0-9_.-]+/i) ) {
+	} else if ( keyPresses.match(/^cmd [a-zA-Z0-9_.-]+/ig) ) {
 		command = keyPresses.slice(4,keyPresses.length);
 		message = `custom command: ${command}`;
 
 	// help
-	} else if ( keyPresses.match(/^help$/i) ) {
+	} else if ( keyPresses.match(/^help$/ig) ) {
 		console.log(help); 
 		return;
 
 	// clear console
-	} else if ( keyPresses.match(/^clear|c$/i) ) {
+	} else if ( keyPresses.match(/^clear|c$/ig) ) {
 		clear();
 		return;
 
