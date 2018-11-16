@@ -77,6 +77,10 @@ function stripRemotePathForDisplay(remotePath){
 	return remotePath.split('/').splice(3).join('/');
 }
 
+/**
+ * 
+ * @param {*} logFiles 
+ */
 function formatLogFiles(logFiles){
 	return logFiles.map(file => {
 		const relativeFilePath = file[0];
@@ -91,12 +95,19 @@ function formatLogFiles(logFiles){
 	});
 }
 
+/**
+ * 
+ * @param {*} param0 
+ */
 function _generateAbsoluteLocalPath({localFilePath}){
 	return join(__dirname, '..',`${localFilePath}`)
 		.replace(/\//g,'\\');
 }
 
-
+/**
+ * 
+ * @param {*} param0 
+ */
 function filterNodeAndGitFiles({files}){
 	return files.filter(file => !/\\\.git\\|\\node_modules\\|\\tmp\\|\\bower_components\\/.test(file));
 }
