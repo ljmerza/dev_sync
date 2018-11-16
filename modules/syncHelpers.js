@@ -18,7 +18,7 @@ const {
 
 const {
 	getAbsoluteRemoteAndLocalPaths, stripRemotePathForDisplay, 
-	filterNodeAndGitFiles
+	filterFiles
 } = require('./formatting');
 
 const {createProgress, updateProgress} = require('./progress');
@@ -175,7 +175,7 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			// get local and remote files list
 			console.log(`Getting ${repo} local file list at ${localPath}`);
 			const localFiles = await getLocalFileTree({localPath});
-			const filteredLocalFiles = filterNodeAndGitFiles({files:localFiles});
+			const filteredLocalFiles = filterFiles({files:localFiles});
 
 			// format local files to get local and remote absolute paths
 			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});

@@ -78,8 +78,8 @@ function stripRemotePathForDisplay(remotePath){
 }
 
 /**
- * 
- * @param {*} logFiles 
+ * generates the absolute local and remote path for log files
+ * @param {Array<Array<string>>} logFiles
  */
 function formatLogFiles(logFiles){
 	return logFiles.map(file => {
@@ -96,24 +96,23 @@ function formatLogFiles(logFiles){
 }
 
 /**
- * 
- * @param {*} param0 
+ * gets a local path relative to the parent folder of the app and generates an absolute path
+ * @param {string} localFilePath
  */
 function _generateAbsoluteLocalPath({localFilePath}){
-	return join(__dirname, '..',`${localFilePath}`)
-		.replace(/\//g,'\\');
+	return join(__dirname, '..',`${localFilePath}`).replace(/\//g,'\\');
 }
 
 /**
- * 
- * @param {*} param0 
+ * filter all files such as git, node_modules, tmp, etc files 
+ * @param {Array<string>} files
  */
-function filterNodeAndGitFiles({files}){
+function filterFiles({files}){
 	return files.filter(file => !/\\\.git\\|\\node_modules\\|\\tmp\\|\\bower_components\\/.test(file));
 }
 
 module.exports = {
-	retrievePaths, filterNodeAndGitFiles,
+	retrievePaths, filterFiles,
 	formatServerStdOut, getAbsoluteRemoteAndLocalPaths,
 	stripRemotePathForDisplay, formatLogFiles
 };
