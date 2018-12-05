@@ -2,7 +2,7 @@ const Promise = require("bluebird");
 const chalk = require('chalk');
 
 const {checkSshConnection,closeConnections} = require("./connections");
-const {formatServerStdOut} = require('./formatting');
+const { formatServerStdOut, excludedRemoteFolders } = require('./formatting');
 
 /**
  *  makes directory folder for a given path
@@ -163,12 +163,27 @@ async function restartApache({connections, fromName='restartApache'}) {
 }
 
 /**
+ * builds a remote find command based on the base path and exluded folders selected
+ * @param {*} path 
+ */
+function buildRemoteFindCommand(path){
+	let command = `find ${path}/`;
+
+	excludedRemoteFolders.forEach(folder => {
+		command += ` -not -path "*/${folder}/*"`;
+	});
+
+	command += ` -name \\*.\\* -type f`;
+	return command;
+}
+
+/**
  * gets a recursive list of all remote files given a path
  */
 async function getRemoteFileTree({path, fromName='getRemoteFileTree'}) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const command = `find ${path}/ -type d \\( -path ${path}/node_modules -o -path ${path}/bower_components -o -path ${path}/tmp \\) -prune -o -print`;
+			const command = buildRemoteFindCommand(path);
 			const result = await executeRemoteCommand(command, null, `${fromName}::getRemoteFileTree`, true);
 		
 			const absoluteFiles = result.split(path)

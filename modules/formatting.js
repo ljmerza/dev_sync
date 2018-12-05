@@ -108,11 +108,28 @@ function _generateAbsoluteLocalPath({localFilePath}){
  * @param {Array<string>} files
  */
 function filterFiles({files}){
-	return files.filter(file => !/\\\.git\\|\\node_modules\\|\\tmp\\|\\bower_components\\/.test(file));
+	const regex = buildLocalExclude();
+	const excludeRegex = new RegExp(regex)
+	return files.filter(file => excludeRegex.test(file));
 }
+
+/**
+ * filter all files such as git, node_modules, tmp, etc files 
+ * @param {Array<string>} files
+ */
+function buildLocalExclude() {
+	return excludedLocalFolders
+		.map(file => `\\${file}\\|/${file}/`)
+		.join('|');
+}
+
+
+const excludedLocalFolders = ['__pycache__', 'node_modules', 'bower_components', 'tmp', '.git'];
+const excludedRemoteFolders = ['__pycache__', 'node_modules', 'bower_components', 'tmp', '.git'];
 
 module.exports = {
 	retrievePaths, filterFiles,
 	formatServerStdOut, getAbsoluteRemoteAndLocalPaths,
-	stripRemotePathForDisplay, formatLogFiles
+	stripRemotePathForDisplay, formatLogFiles, 
+	excludedLocalFolders, excludedRemoteFolders
 };
