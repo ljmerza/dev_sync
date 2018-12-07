@@ -4,6 +4,8 @@ const { join, dirname } = require('path');
 // what is the folder depth of the base path to all watched files?
 const basePath = join(__dirname, '../..');
 
+const excludedLocalFolders = ['__pycache__', 'node_modules', 'bower_components', 'tmp', '.git'];
+const excludedRemoteFolders = ['__pycache__', 'node_modules', 'bower_components', 'tmp', '.git'];
 
 /**
  * formats local and remote file paths for sFTP
@@ -104,31 +106,24 @@ function _generateAbsoluteLocalPath({localFilePath}){
 }
 
 /**
- * filter all files such as git, node_modules, tmp, etc files 
- * @param {Array<string>} files
+ * builds a remote find command based on the base path and exluded folders selected
+ * @param {*} path 
  */
-function filterFiles({files}){
-	const regex = buildLocalExclude();
-	const excludeRegex = new RegExp(regex)
-	return files.filter(file => excludeRegex.test(file));
-}
+function buildRemoteFindCommand(path) {
+	let command = `find ${path}/`;
 
-/**
- * filter all files such as git, node_modules, tmp, etc files 
- * @param {Array<string>} files
- */
-function buildLocalExclude() {
-	return excludedLocalFolders
-		.map(file => `\\${file}\\|/${file}/`)
-		.join('|');
+	excludedRemoteFolders.forEach(folder => {
+		command += ` -not -path "*/${folder}/*"`;
+	});
+
+	command += ` -name \\*.\\* -type f`;
+	return command;
 }
 
 
-const excludedLocalFolders = ['__pycache__', 'node_modules', 'bower_components', 'tmp', '.git'];
-const excludedRemoteFolders = ['__pycache__', 'node_modules', 'bower_components', 'tmp', '.git'];
 
 module.exports = {
-	retrievePaths, filterFiles,
+	retrievePaths, buildRemoteFindCommand,
 	formatServerStdOut, getAbsoluteRemoteAndLocalPaths,
 	stripRemotePathForDisplay, formatLogFiles, 
 	excludedLocalFolders, excludedRemoteFolders

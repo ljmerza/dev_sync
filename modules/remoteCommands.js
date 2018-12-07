@@ -2,7 +2,7 @@ const Promise = require("bluebird");
 const chalk = require('chalk');
 
 const {checkSshConnection,closeConnections} = require("./connections");
-const { formatServerStdOut, excludedRemoteFolders } = require('./formatting');
+const { formatServerStdOut, buildRemoteFindCommand } = require('./formatting');
 
 /**
  *  makes directory folder for a given path
@@ -160,21 +160,6 @@ async function restartApache({connections, fromName='restartApache'}) {
 		}
 		return resolve();
 	});
-}
-
-/**
- * builds a remote find command based on the base path and exluded folders selected
- * @param {*} path 
- */
-function buildRemoteFindCommand(path){
-	let command = `find ${path}/`;
-
-	excludedRemoteFolders.forEach(folder => {
-		command += ` -not -path "*/${folder}/*"`;
-	});
-
-	command += ` -name \\*.\\* -type f`;
-	return command;
 }
 
 /**

@@ -1,5 +1,5 @@
 const {createReadStream} = require('fs');
-const chalk = require('chalk');
+const path = require('path');
 
 const recursive = require("recursive-readdir");
 const Promise = require("bluebird");
@@ -16,10 +16,7 @@ const {
 	getRemoteFileTree
 } = require('./remoteCommands');
 
-const {
-	getAbsoluteRemoteAndLocalPaths, stripRemotePathForDisplay, 
-	filterFiles
-} = require('./formatting');
+const { getAbsoluteRemoteAndLocalPaths, excludedLocalFolders } = require('./formatting');
 
 const {createProgress, updateProgress} = require('./progress');
 const {chunkFiles, asyncForEach} = require('./tools');
@@ -175,10 +172,9 @@ async function transferRepo({localPath, remoteBasePath, repo}) {
 			// get local and remote files list
 			console.log(`Getting ${repo} local file list at ${localPath}`);
 			const localFiles = await getLocalFileTree({localPath});
-			const filteredLocalFiles = filterFiles({files:localFiles});
 
 			// format local files to get local and remote absolute paths
-			const formattedFiles = getAbsoluteRemoteAndLocalPaths({files:filteredLocalFiles, remoteBasePath, localPath, repo});
+			const formattedFiles = getAbsoluteRemoteAndLocalPaths({ files: localFiles, remoteBasePath, localPath, repo});
 
 			// find any remote files that need deleting
 			console.log(`Getting ${repo} remote file list at ${remoteBasePath}`);
@@ -271,7 +267,6 @@ async function chunkOperation({files, operation, operationArgs={}}){
 				let connections = await sftpConnectionPromise('chunkOperation');
 
 				await asyncForEach(chunkOfFiles , async file => {
-					console.log('file: ', file);
 					await operation({file, connections, ...operationArgs});
 				});
 				
@@ -331,11 +326,20 @@ async function bulkDeleteRemoteFiles({remoteFilesToDelete}){
  */
 async function getLocalFileTree({localPath}){
 	return new Promise((resolve, reject) => {
-		recursive(localPath, async (err, files) => {
+		recursive(localPath, [ignoreFunc], async (err, files) => {
 			if(err) return reject(`getLocalFileTree::${err}`);
 			return resolve(files);
 		});
 	})
+}
+
+/**
+ * ignore local directories
+ * @param {*} file 
+ * @param {*} stats 
+ */
+function ignoreFunc(file, stats) {
+	return stats.isDirectory() && (excludedLocalFolders.includes(path.basename(file)));
 }
 
 /**
