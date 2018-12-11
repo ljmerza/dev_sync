@@ -46,7 +46,7 @@ async function syncLogFolders(connections){
 
 	return new Promise(async (resolve, reject) => {
 		try {
-			await asyncForEach(config.logFiles, async file => {
+			await asyncForEach(getAllLogFiles(), async file => {
 
 				const remoteFilePath = `${config.remoteBase}/${file[0]}`;
 				const remoteFile = `${remoteFilePath}/${file[1]}`;
@@ -77,7 +77,7 @@ async function syncLogFolders(connections){
 async function syncLogsInterval() {
 
 	let checkSync = true; // only allow one sync operation at a time
-	const formattedLogFiles = formatLogFiles(config.logFiles);
+	const formattedLogFiles = formatLogFiles(getAllLogFiles());
 
 	setInterval(async () => {
 		try {
@@ -105,7 +105,7 @@ async function syncLogsInterval() {
 async function resetLogs(fromName='resetLogs') {
 
 	// combine all log file paths into a command
-	const command = config.logFiles.map(logFile => `${logFile[0]}/${logFile[1]}`)
+	const command = getAllLogFiles().map(logFile => `${logFile[0]}/${logFile[1]}`)
 	.reduce( (command, dir) => `${command} cat /dev/null > ${config.remoteBase}/${dir};`, '');
 	
 	console.log(chalk.blueBright('resetting logs...'));
@@ -119,6 +119,17 @@ async function resetLogs(fromName='resetLogs') {
 			return reject(`resetLogs::${err}`);
 		}
 	});	
+}
+
+function getAllLogFiles(){
+	let logFiles = [];
+
+	Object.keys(config.repos).forEach(repoName => {
+		const repo = config.repos[repoName];
+		(repo.logs || []).forEach(log => logFiles.push(log));
+	});
+
+	return logFiles;
 }
 
 module.exports = {syncLogs, syncLogsInterval, resetLogs};

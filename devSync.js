@@ -40,8 +40,8 @@ let currentTimer = setTimeout(()=>{},0);
 async function watchRepos() {
 	console.log(chalk.greenBright('watching the following repositories:'));
 
-	const watchDirs = Object.keys(config.localPaths)
-	.map( repo => { return {dir: `../${config.localPaths[repo]}/`, repo} });
+	const watchDirs = Object.keys(config.repos)
+	.map(repo => { return {dir: `../${config.repos[repo].local}/`, repo} });
 
 	await asyncForEach(watchDirs, async element => {
 		try {

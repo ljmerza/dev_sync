@@ -14,8 +14,8 @@ const excludedRemoteFolders = ['__pycache__', 'node_modules', 'bower_components'
 function retrievePaths(changedFile) {
 
 	// get config info for repo
-	const localRepoPath = config.localPaths[changedFile.repo];
-	const remoteRepoPath = config.remotePaths[changedFile.repo];
+	const localRepoPath = config.repos[changedFile.repo].local;
+	const remoteRepoPath = config.repos[changedFile.repo].remote;
 
 	// get local path data
 	const absoluteLocalPath = changedFile.localPath;
