@@ -396,7 +396,7 @@ async function getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePa
 }
 
 /**
- * gets a remote file and syncs it to a local file
+ * gets a local file and syncs it to remote
  */
 async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localFilePath, connections, fromName='setRemoteFile'}){
 	return new Promise(async (resolve, reject) => {
@@ -405,7 +405,7 @@ async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localFilePa
 		try {
 			connections = await checkSftpConnection(connections, 'setRemoteFile');
 			connections.sftpConnection.fastPut(absoluteLocalPath, absoluteRemotePath, err => {
-				if(err) return reject(`${fromName}::setRemoteFile::fastPut::${err}`);
+				if (err) return reject(`${fromName}::setRemoteFile::fastPut::${err}::${absoluteLocalPath}->${absoluteRemotePath}`);
 				if(closeConnection) closeConnections(connections);
 				return resolve(localFilePath);
 			});

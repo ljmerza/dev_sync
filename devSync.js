@@ -30,10 +30,6 @@ let currentTimer = setTimeout(()=>{},0);
 	await watchRepos();
 })();
 
-
-
-
-
 /**
  * format dirs to relative path of this file then create watcher
  */
