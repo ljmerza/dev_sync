@@ -1,18 +1,18 @@
 {
   "name": "dev-sync",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "main": "dev_sync.js",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "chalk": "^2.4.1",
-    "chokidar": "^1.7.0",
+    "bluebird": "^3.5.3",
+    "chalk": "^2.4.2",
+    "chokidar": "^2.1.2",
     "cli-clear": "^1.0.4",
     "keypress": "^0.2.1",
-    "progress": "^2.0.0",
-    "recursive-readdir": "^2.2.1",
-    "ssh2": "^0.5.4",
-    "stream-equal": "^1.1.0"
+    "progress": "^2.0.3",
+    "recursive-readdir": "^2.2.2",
+    "ssh2": "^0.8.2",
+    "stream-equal": "^1.1.1"
   },
   "scripts": {
     "start": "node --experimental-modules devSync.js",
