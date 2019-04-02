@@ -359,6 +359,7 @@ async function areFileSteamsEqual({absoluteLocalPath, absoluteRemotePath, connec
 				if(closeConnection) closeConnections(connections);
 
 				if(err) {
+					if (closeConnection) closeConnections(connections);
 					err = `${err}`;
 					if(/No such file/.test(err)) return resolve(false);
 					return reject(`areFileSteamsEqual::${err}`);
@@ -381,11 +382,10 @@ async function getRemoteFile({absoluteRemotePath, absoluteLocalPath, localBasePa
 	return new Promise(async (resolve, reject) => {
 		let closeConnection = !connections;
 		try {
-
 			connections = await checkSftpConnection(connections, 'getRemoteFile');
 			connections.sftpConnection.fastGet(absoluteRemotePath, absoluteLocalPath, err => {
+				if (closeConnection) closeConnections(connections);
 				if(err) return reject(`fastGet getRemoteFile::${err}`);
-				if(closeConnection) closeConnections(connections);
 				return resolve(`synced ${localBasePath} from remote`);
 			});
 		} catch(err){
@@ -405,8 +405,8 @@ async function setRemoteFile({absoluteRemotePath, absoluteLocalPath, localFilePa
 		try {
 			connections = await checkSftpConnection(connections, 'setRemoteFile');
 			connections.sftpConnection.fastPut(absoluteLocalPath, absoluteRemotePath, err => {
+				if (closeConnection) closeConnections(connections);
 				if (err) return reject(`${fromName}::setRemoteFile::fastPut::${err}::${absoluteLocalPath}->${absoluteRemotePath}`);
-				if(closeConnection) closeConnections(connections);
 				return resolve(localFilePath);
 			});
 

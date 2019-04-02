@@ -94,7 +94,10 @@ async function executeRemoteCommand(command, connections, fromName='executeRemot
 			connections = await checkSshConnection(connections, `${fromName}::executeRemoteCommand`);
 
 			connections.sshConnection.exec(command, async (err, stream) => {
-				if(err) return reject(`stream error executeRemoteCommand::${err}`);
+				if(err) {
+					if (closeConnection) await closeConnections(connections);
+					return reject(`stream error executeRemoteCommand::${err}`);
+				}
 
 				// on data or error event -> format then log stdout from server
 				stream.on('data', data => {
